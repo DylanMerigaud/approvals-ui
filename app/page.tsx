@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Check, Copy, Moon, RotateCcw, Sun } from "lucide-react"
+import { ArrowDown, ArrowRight, Check, Copy, Moon, RotateCcw, Sparkles, Sun } from "lucide-react"
 
 import { NlEditPanel } from "@/components/approvals-ui/nl-edit-panel"
 import { ValidationPanel } from "@/components/approvals-ui/validation-panel"
@@ -25,6 +25,35 @@ import { isActivatable, validatePolicy } from "@/lib/approvals-ui/validate"
 
 const REGISTRY_URL = "https://approvals-ui.vercel.app"
 const GITHUB_URL = "https://github.com/DylanMerigaud/approvals-ui"
+
+const AGENT_PROMPT = `Add the approvals-ui approval-workflow screen to this project.
+
+1. It is a shadcn registry, not an npm package. If the project has no components.json yet,
+   run: npx shadcn@latest init
+   Then: npx shadcn@latest add ${REGISTRY_URL}/r/workflow-canvas.json
+   Also add ${REGISTRY_URL}/r/nl-edit-panel.json and
+   ${REGISTRY_URL}/r/validation-panel.json if we want the editing and lint panels.
+
+2. Components land in components/approvals-ui/, the headless core in lib/approvals-ui/.
+   Render the canvas inside a container with a real height:
+
+   import { WorkflowCanvas } from "@/components/approvals-ui/workflow-canvas"
+   import { examplePolicy } from "@/lib/approvals-ui/example-policy"
+
+   <div className="h-[600px]">
+     <WorkflowCanvas policy={examplePolicy} />
+   </div>
+
+3. Replace examplePolicy with our own ApprovalPolicy (schema: lib/approvals-ui/policy.ts).
+   Steps are approval gates or terminals; each has a "when" guard, approvers, and "next"
+   edges. Validate with validatePolicy() from lib/approvals-ui/validate.ts and surface the
+   issues (ValidationPanel renders them; isActivatable() should gate activation).
+
+4. direction="TB" for top to bottom; the default lays out left to right.
+
+5. For plain-language editing, wire NlEditPanel with the bundled demoProposer first. To use
+   a real model, implement a Proposer that emits one EditOp (validate with editOpSchema) and
+   apply it with proposeEdits. Keep the Apply/Discard review step: nothing lands without it.`
 
 const ITEMS = [
   {
@@ -99,6 +128,29 @@ function InstallCommand({ item, className }: { item: string; className?: string 
   )
 }
 
+function AgentPromptButton() {
+  const [copied, setCopied] = useState(false)
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="shrink-0"
+      onClick={async () => {
+        await navigator.clipboard.writeText(AGENT_PROMPT)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1800)
+      }}
+    >
+      {copied ? (
+        <Check className="size-3.5 text-emerald-500" />
+      ) : (
+        <Sparkles className="size-3.5" />
+      )}
+      {copied ? "Copied" : "Copy agent prompt"}
+    </Button>
+  )
+}
+
 function ThemeToggle() {
   const [dark, setDark] = useState<boolean | null>(null)
   useEffect(() => {
@@ -131,6 +183,7 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [focus, setFocus] = useState<{ stepId: string } | null>(null)
   const [tab, setTab] = useState("edit")
+  const [direction, setDirection] = useState<"LR" | "TB">("LR")
 
   const previewing = proposal !== null && hasChanges(proposal.changes)
   const displayed = previewing ? proposal.proposed : policy
@@ -170,7 +223,10 @@ export default function Home() {
           of duties means, and plain-language editing where a human reviews the diff before
           anything lands. Install with one command, the code lands in your project, it is yours.
         </p>
-        <InstallCommand item="workflow-canvas" className="mt-6 max-w-xl" />
+        <div className="mt-6 flex max-w-2xl flex-col gap-2 sm:flex-row sm:items-center">
+          <InstallCommand item="workflow-canvas" className="min-w-0 flex-1" />
+          <AgentPromptButton />
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -184,24 +240,43 @@ export default function Home() {
                   : "Live demo. Try an edit on the right."}
               </CardDescription>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setPolicy(examplePolicy)
-                setProposal(null)
-                setSelectedId(null)
-              }}
-            >
-              <RotateCcw className="size-3.5" />
-              Reset
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant={direction === "LR" ? "secondary" : "ghost"}
+                size="icon-sm"
+                aria-label="Left to right"
+                onClick={() => setDirection("LR")}
+              >
+                <ArrowRight className="size-3.5" />
+              </Button>
+              <Button
+                variant={direction === "TB" ? "secondary" : "ghost"}
+                size="icon-sm"
+                aria-label="Top to bottom"
+                onClick={() => setDirection("TB")}
+              >
+                <ArrowDown className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPolicy(examplePolicy)
+                  setProposal(null)
+                  setSelectedId(null)
+                }}
+              >
+                <RotateCcw className="size-3.5" />
+                Reset
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="h-[540px] p-0 sm:h-[600px]">
             <WorkflowCanvas
               policy={displayed}
               changes={proposal?.changes}
               issues={issues}
+              direction={direction}
               rankSep={56}
               selectedId={selectedId}
               onSelectStep={setSelectedId}

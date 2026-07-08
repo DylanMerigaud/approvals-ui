@@ -53,6 +53,7 @@ export type WorkflowCanvasProps = {
   issues?: PolicyIssue[]
   /** Live run overlay: per-step status for one request. */
   statuses?: Record<string, StepStatus>
+  /** "LR" (default) lays out left to right, "TB" top to bottom. */
   direction?: "TB" | "LR"
   /** Gap between sibling branches. Defaults to the layout library's 40. */
   nodeSep?: number
@@ -142,7 +143,7 @@ function CanvasInner({
   changes,
   issues,
   statuses,
-  direction = "TB",
+  direction = "LR",
   nodeSep,
   rankSep,
   selectedId,

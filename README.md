@@ -18,6 +18,43 @@ npx shadcn@latest add https://approvals-ui.vercel.app/r/workflow-canvas.json
 
 One command. The code lands in your project, with its dependencies resolved. It is yours to edit.
 
+## Add it with your AI agent
+
+Paste this into Claude Code, Cursor, or any coding agent (also one click away in the
+[playground](https://approvals-ui.vercel.app)):
+
+```text
+Add the approvals-ui approval-workflow screen to this project.
+
+1. It is a shadcn registry, not an npm package. If the project has no components.json yet,
+   run: npx shadcn@latest init
+   Then: npx shadcn@latest add https://approvals-ui.vercel.app/r/workflow-canvas.json
+   Also add https://approvals-ui.vercel.app/r/nl-edit-panel.json and
+   https://approvals-ui.vercel.app/r/validation-panel.json if we want the editing and lint
+   panels.
+
+2. Components land in components/approvals-ui/, the headless core in lib/approvals-ui/.
+   Render the canvas inside a container with a real height:
+
+   import { WorkflowCanvas } from "@/components/approvals-ui/workflow-canvas"
+   import { examplePolicy } from "@/lib/approvals-ui/example-policy"
+
+   <div className="h-[600px]">
+     <WorkflowCanvas policy={examplePolicy} />
+   </div>
+
+3. Replace examplePolicy with our own ApprovalPolicy (schema: lib/approvals-ui/policy.ts).
+   Steps are approval gates or terminals; each has a "when" guard, approvers, and "next"
+   edges. Validate with validatePolicy() from lib/approvals-ui/validate.ts and surface the
+   issues (ValidationPanel renders them; isActivatable() should gate activation).
+
+4. direction="TB" for top to bottom; the default lays out left to right.
+
+5. For plain-language editing, wire NlEditPanel with the bundled demoProposer first. To use
+   a real model, implement a Proposer that emits one EditOp (validate with editOpSchema) and
+   apply it with proposeEdits. Keep the Apply/Discard review step: nothing lands without it.
+```
+
 ## Why this exists
 
 React Flow gives you a canvas. [React Flow UI](https://reactflow.dev/ui) gives you generic
