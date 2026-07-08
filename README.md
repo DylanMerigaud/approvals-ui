@@ -10,7 +10,7 @@ and plain-language editing where a human reviews the diff before anything lands.
 
 </div>
 
-![The playground previewing a plain-language edit: a CFO gate proposed above 50k, ringed green on the canvas, with an Apply / Discard review step](./docs/demo.png)
+![Typing "Above $50k also require the CFO": a CFO gate appears on the canvas ringed green, the proposal reads 1 added 1 changed, and Apply lands it](./docs/demo.gif)
 
 ```bash
 npx shadcn@latest add https://approvals-ui.vercel.app/r/workflow-canvas.json
