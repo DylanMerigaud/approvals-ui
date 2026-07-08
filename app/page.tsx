@@ -277,7 +277,7 @@ export default function Home() {
               changes={proposal?.changes}
               issues={issues}
               direction={direction}
-              rankSep={56}
+              rankSep={direction === "TB" ? 56 : undefined}
               selectedId={selectedId}
               onSelectStep={setSelectedId}
               focus={focus}
