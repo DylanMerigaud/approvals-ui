@@ -21,6 +21,20 @@ npx shadcn@latest add https://approvals-ui.vercel.app/r/workflow-canvas.json
 
 One command. The code lands in your project, with its dependencies resolved. It is yours to edit.
 
+Prefer a namespace? Add the registry once to your `components.json`:
+
+```json
+{
+  "registries": {
+    "@approvals-ui": "https://approvals-ui.vercel.app/r/{name}.json"
+  }
+}
+```
+
+```bash
+npx shadcn@latest add @approvals-ui/workflow-canvas
+```
+
 ## Add it with your AI agent
 
 Paste this into Claude Code, Cursor, or any coding agent (also one click away in the
