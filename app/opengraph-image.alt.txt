@@ -1,0 +1,1 @@
+approvals-ui: the approval workflow screen as shadcn components for React Flow, showing a policy graph with a proposed CFO gate under human review.
