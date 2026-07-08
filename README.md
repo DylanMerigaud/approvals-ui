@@ -6,6 +6,9 @@
 Quorum gates, amount thresholds, a policy lint that knows what segregation of duties means,
 and plain-language editing where a human reviews the diff before anything lands.
 
+[![CI](https://github.com/DylanMerigaud/approvals-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/DylanMerigaud/approvals-ui/actions/workflows/ci.yml)
+[![license](https://img.shields.io/github/license/DylanMerigaud/approvals-ui?color=blue)](./LICENSE)
+
 ### ▶︎ [Live playground](https://approvals-ui.vercel.app)
 
 </div>
