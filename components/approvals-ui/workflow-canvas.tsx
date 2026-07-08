@@ -218,9 +218,18 @@ function CanvasInner({
  *
  * The parent element must have a height.
  */
+const FLOW_THEME = {
+  "--xy-controls-button-background-color": "var(--card)",
+  "--xy-controls-button-background-color-hover": "var(--muted)",
+  "--xy-controls-button-color": "var(--foreground)",
+  "--xy-controls-button-color-hover": "var(--foreground)",
+  "--xy-controls-button-border-color": "var(--border)",
+  "--xy-attribution-background-color": "transparent",
+} as React.CSSProperties
+
 export function WorkflowCanvas({ className, ...props }: WorkflowCanvasProps) {
   return (
-    <div className={cn("h-full w-full", className)}>
+    <div className={cn("h-full w-full", className)} style={FLOW_THEME}>
       <ReactFlowProvider>
         <CanvasInner {...props} />
       </ReactFlowProvider>
