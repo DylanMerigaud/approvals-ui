@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowRight, Check, Copy, Moon, RotateCcw, Sparkles, Sun } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+
+import type { EditProposal } from "@/lib/approvals-ui/edit-ops";
 
 import { NlEditPanel } from "@/components/approvals-ui/nl-edit-panel";
 import { ValidationPanel } from "@/components/approvals-ui/validation-panel";
@@ -13,12 +15,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { demoInstructions, demoProposer } from "@/lib/approvals-ui/demo-proposer";
 import { hasChanges } from "@/lib/approvals-ui/diff";
-import type { EditProposal } from "@/lib/approvals-ui/edit-ops";
 import { examplePolicy } from "@/lib/approvals-ui/example-policy";
 import { isActivatable, validatePolicy } from "@/lib/approvals-ui/validate";
+import { cn } from "@/lib/utils";
 
 const REGISTRY_URL = "https://approvals-ui.vercel.app";
 const GITHUB_URL = "https://github.com/DylanMerigaud/approvals-ui";
+// The identifier shown verbatim in the JSX code sample below. Interpolated so it
+// renders as the bare `{examplePolicy}` prop without tripping the template rules.
+const EXAMPLE_POLICY_PROP = "examplePolicy";
 
 const AGENT_PROMPT = `Add the approvals-ui approval-workflow screen to this project.
 
@@ -35,7 +40,7 @@ const AGENT_PROMPT = `Add the approvals-ui approval-workflow screen to this proj
    import { examplePolicy } from "@/lib/approvals-ui/example-policy"
 
    <div className="h-[600px]">
-     <WorkflowCanvas policy={examplePolicy} />
+     <WorkflowCanvas policy={${EXAMPLE_POLICY_PROP}} />
    </div>
 
 3. Replace examplePolicy with our own ApprovalPolicy (schema: lib/approvals-ui/policy.ts).
@@ -81,15 +86,15 @@ const ITEMS = [
   },
 ] as const;
 
-function GithubIcon({ className }: { className?: string }) {
+const GithubIcon = ({ className }: { className?: string }) => {
   return (
     <svg viewBox="0 0 16 16" fill="currentColor" className={className} aria-hidden="true">
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
     </svg>
   );
-}
+};
 
-function CopyButton({ text, className }: { text: string; className?: string }) {
+const CopyButton = ({ text, className }: { text: string; className?: string }) => {
   const [copied, setCopied] = useState(false);
   return (
     <Button
@@ -106,13 +111,13 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
       {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
     </Button>
   );
-}
+};
 
-function InstallCommand({ item, className }: { item: string; className?: string }) {
+const InstallCommand = ({ item, className }: { item: string; className?: string }) => {
   const command = `npx shadcn@latest add ${REGISTRY_URL}/r/${item}.json`;
   return (
     <div
-      className={`bg-muted/40 flex items-center gap-1 rounded-lg border pr-1 pl-3 ${className ?? ""}`}
+      className={cn("bg-muted/40 flex items-center gap-1 rounded-lg border pr-1 pl-3", className)}
     >
       <code className="text-muted-foreground min-w-0 flex-1 truncate py-2 font-mono text-[11px]">
         {command}
@@ -120,9 +125,9 @@ function InstallCommand({ item, className }: { item: string; className?: string 
       <CopyButton text={command} className="size-7 shrink-0" />
     </div>
   );
-}
+};
 
-function AgentPromptButton() {
+const AgentPromptButton = () => {
   const [copied, setCopied] = useState(false);
   return (
     <Button
@@ -139,9 +144,9 @@ function AgentPromptButton() {
       {copied ? "Copied" : "Copy agent prompt"}
     </Button>
   );
-}
+};
 
-function ThemeToggle() {
+const ThemeToggle = () => {
   const [dark, setDark] = useState<boolean | null>(null);
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
@@ -154,18 +159,20 @@ function ThemeToggle() {
       className="size-8"
       aria-label="Toggle theme"
       onClick={() => {
-        const next = !dark;
-        document.documentElement.classList.toggle("dark", next);
+        const isNext = !dark;
+        document.documentElement.classList.toggle("dark", isNext);
         try {
-          localStorage.setItem("theme", next ? "dark" : "light");
-        } catch {}
-        setDark(next);
+          localStorage.setItem("theme", isNext ? "dark" : "light");
+        } catch {
+          /* localStorage can throw in private mode or when storage is full; ignore */
+        }
+        setDark(isNext);
       }}
     >
       {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </Button>
   );
-}
+};
 
 export default function Home() {
   const [policy, setPolicy] = useState(examplePolicy);
@@ -175,10 +182,10 @@ export default function Home() {
   const [tab, setTab] = useState("edit");
   const [direction, setDirection] = useState<"LR" | "TB">("LR");
 
-  const previewing = proposal !== null && hasChanges(proposal.changes);
-  const displayed = previewing ? proposal.proposed : policy;
+  const isPreviewing = proposal !== null && hasChanges(proposal.changes);
+  const displayed = isPreviewing ? proposal.proposed : policy;
   const issues = useMemo(() => validatePolicy(displayed), [displayed]);
-  const blockApply = previewing && !isActivatable(issues);
+  const isBlockApply = isPreviewing && !isActivatable(issues);
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 sm:px-6">
@@ -195,7 +202,7 @@ export default function Home() {
             variant="ghost"
             size="sm"
             nativeButton={false}
-            render={<a href={GITHUB_URL} target="_blank" rel="noreferrer" />}
+            render={<a href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label="GitHub" />}
           >
             <GithubIcon className="size-4" />
             GitHub
@@ -225,7 +232,7 @@ export default function Home() {
             <div className="space-y-0.5">
               <CardTitle className="text-sm">{displayed.name}</CardTitle>
               <CardDescription className="text-xs">
-                {previewing
+                {isPreviewing
                   ? "Previewing a proposal. Nothing is applied yet."
                   : "Live demo. Try an edit on the right."}
               </CardDescription>
@@ -299,7 +306,7 @@ export default function Home() {
                   proposal={proposal}
                   onProposalChange={setProposal}
                   onApply={setPolicy}
-                  blockApply={blockApply}
+                  blockApply={isBlockApply}
                   blockApplyReason="The proposed policy has validation errors."
                   suggestions={[...demoInstructions]}
                 />

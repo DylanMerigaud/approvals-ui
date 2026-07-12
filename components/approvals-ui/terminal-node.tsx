@@ -1,12 +1,13 @@
 "use client";
 
-import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
+import { Handle, type Node, type NodeProps, Position } from "@xyflow/react";
 import { CircleCheck, CircleX } from "lucide-react";
 
-import { stateRing, type StepStatus } from "@/components/approvals-ui/approval-node";
 import type { StepChange } from "@/lib/approvals-ui/diff";
-import type { IssueSeverity } from "@/lib/approvals-ui/validate";
 import type { TerminalStep } from "@/lib/approvals-ui/policy";
+import type { IssueSeverity } from "@/lib/approvals-ui/validate";
+
+import { stateRing, type StepStatus } from "@/components/approvals-ui/approval-node";
 import { cn } from "@/lib/utils";
 
 export type TerminalNodeData = {
@@ -21,10 +22,10 @@ export type TerminalNodeData = {
 
 export type TerminalFlowNode = Node<TerminalNodeData, "terminal">;
 
-export function TerminalNode({ data }: NodeProps<TerminalFlowNode>) {
+export const TerminalNode = ({ data }: NodeProps<TerminalFlowNode>) => {
   const { step } = data;
-  const vertical = data.vertical !== false;
-  const approved = step.outcome === "approved";
+  const isVertical = data.vertical !== false;
+  const isApproved = step.outcome === "approved";
 
   return (
     <div
@@ -36,10 +37,10 @@ export function TerminalNode({ data }: NodeProps<TerminalFlowNode>) {
     >
       <Handle
         type="target"
-        position={vertical ? Position.Top : Position.Left}
+        position={isVertical ? Position.Top : Position.Left}
         className="!bg-border !size-2 !border-none"
       />
-      {approved ? (
+      {isApproved ? (
         <CircleCheck className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
       ) : (
         <CircleX className="size-4 shrink-0 text-red-600 dark:text-red-400" />
@@ -47,4 +48,4 @@ export function TerminalNode({ data }: NodeProps<TerminalFlowNode>) {
       <span className="text-sm leading-none font-medium">{step.label}</span>
     </div>
   );
-}
+};

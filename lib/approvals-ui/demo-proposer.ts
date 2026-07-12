@@ -1,5 +1,5 @@
-import { proposeEdits, type EditOp, type EditProposal, type Proposer } from "./edit-ops";
-import { isApprovalStep, isTerminalStep, type ApprovalPolicy, type ApprovalStep } from "./policy";
+import { type EditOp, type EditProposal, proposeEdits, type Proposer } from "./edit-ops";
+import { type ApprovalPolicy, type ApprovalStep, isApprovalStep, isTerminalStep } from "./policy";
 
 /**
  * A deterministic, dependency-free proposer so the edit panel works with no
@@ -20,23 +20,23 @@ export const demoInstructions = [
   "Remove the Director sign-off",
 ] as const;
 
-function normalize(text: string): string {
+const normalize = (text: string): string => {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/[^a-z0-9\s]/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim();
-}
+};
 
-function cleanRole(text: string): string {
+const cleanRole = (text: string): string => {
   return text
-    .replace(/\b(approval|review|sign\s*off|gate|step)\b/gi, " ")
-    .replace(/[^\w\s&-]/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/\b(approval|review|sign\s*off|gate|step)\b/gi, " ")
+    .replaceAll(/[^\w\s&-]/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim();
-}
+};
 
-function titleCase(text: string): string {
+const titleCase = (text: string): string => {
   if (text === text.toUpperCase() && text.length <= 4) return text;
   return text
     .split(" ")
@@ -44,18 +44,18 @@ function titleCase(text: string): string {
       w === w.toUpperCase() && w.length <= 4 ? w : w.charAt(0).toUpperCase() + w.slice(1)
     )
     .join(" ");
-}
+};
 
-function slugify(text: string): string {
-  return normalize(text).replace(/\s/g, "-") || "step";
-}
+const slugify = (text: string): string => {
+  return normalize(text).replaceAll(/\s/g, "-") || "step";
+};
 
-function parseAmount(raw: string, hasK: boolean): number {
-  const value = Number(raw.replace(/,/g, ""));
+const parseAmount = (raw: string, hasK: boolean): number => {
+  const value = Number(raw.replaceAll(",", ""));
   return hasK ? value * 1000 : value;
-}
+};
 
-function matchSteps(policy: ApprovalPolicy, query: string): ApprovalStep[] {
+const matchSteps = (policy: ApprovalPolicy, query: string): ApprovalStep[] => {
   const q = normalize(query);
   if (q.length === 0) return [];
   const gates = policy.steps.filter(isApprovalStep);
@@ -70,22 +70,23 @@ function matchSteps(policy: ApprovalPolicy, query: string): ApprovalStep[] {
       return title.length > 0 && (title.includes(q) || q.includes(title));
     })
   );
-}
+};
 
-function clarifyProposal(
+const clarifyProposal = (
   policy: ApprovalPolicy,
   question: string,
   options?: string[]
-): EditProposal {
+): EditProposal => {
   return proposeEdits(policy, [{ op: "clarify", question, options }]);
-}
+};
 
-function resolveStep(
-  policy: ApprovalPolicy,
-  query: string
-): { step?: ApprovalStep; clarify?: EditProposal } {
+type StepResolution =
+  { step: ApprovalStep; clarify?: undefined } | { step?: undefined; clarify: EditProposal };
+
+const resolveStep = (policy: ApprovalPolicy, query: string): StepResolution => {
   const matches = matchSteps(policy, query);
-  if (matches.length === 1) return { step: matches[0] };
+  const [only] = matches;
+  if (matches.length === 1 && only) return { step: only };
   if (matches.length === 0) {
     return {
       clarify: clarifyProposal(
@@ -102,10 +103,10 @@ function resolveStep(
       matches.map((s) => s.label)
     ),
   };
-}
+};
 
 /** The gate that feeds an approved terminal, else the last gate. */
-function lastGate(policy: ApprovalPolicy): ApprovalStep | undefined {
+const lastGate = (policy: ApprovalPolicy): ApprovalStep | undefined => {
   const approvedIds = new Set(
     policy.steps
       .filter(isTerminalStep)
@@ -113,17 +114,27 @@ function lastGate(policy: ApprovalPolicy): ApprovalStep | undefined {
       .map((t) => t.id)
   );
   const gates = policy.steps.filter(isApprovalStep);
-  return gates.find((g) => g.next.some((id) => approvedIds.has(id))) ?? gates[gates.length - 1];
-}
+  return gates.find((g) => g.next.some((id) => approvedIds.has(id))) ?? gates.at(-1);
+};
 
-function uniqueId(policy: ApprovalPolicy, base: string): string {
-  if (!policy.steps.some((s) => s.id === base)) return base;
+const uniqueId = (policy: ApprovalPolicy, base: string): string => {
+  if (policy.steps.every((s) => s.id !== base)) return base;
   let i = 2;
   while (policy.steps.some((s) => s.id === `${base}-${i}`)) i += 1;
   return `${base}-${i}`;
-}
+};
 
-export const demoProposer: Proposer = async (instruction, policy) => {
+/**
+ * A mandatory regex capture group. When the overall match succeeded, a
+ * non-optional group is always present; this asserts that so the value is a
+ * `string` (not `string | undefined`) without an `as` cast.
+ */
+const group = (value: string | undefined): string => {
+  if (value === undefined) throw new Error("Expected a matched capture group.");
+  return value;
+};
+
+const proposeDemoEdit = (instruction: string, policy: ApprovalPolicy): EditProposal => {
   const text = instruction.trim();
 
   // "Above $50k (also) require the CFO"
@@ -131,8 +142,9 @@ export const demoProposer: Proposer = async (instruction, policy) => {
     /(?:above|over)\s+\$?([\d][\d,.]*)\s*(k)?\b[,:]?\s*(?:also\s+)?require\s+(?:the\s+)?(.+)$/i
   );
   if (threshold) {
-    const value = parseAmount(threshold[1], threshold[2] !== undefined);
-    const role = cleanRole(threshold[3]);
+    const [, rawAmount, kSuffix, rawRole] = threshold;
+    const value = parseAmount(group(rawAmount), kSuffix !== undefined);
+    const role = cleanRole(group(rawRole));
     if (!Number.isFinite(value) || role.length === 0) {
       return clarifyProposal(
         policy,
@@ -140,11 +152,12 @@ export const demoProposer: Proposer = async (instruction, policy) => {
       );
     }
     const existing = matchSteps(policy, role);
-    if (existing.length === 1) {
+    const [onlyExisting] = existing;
+    if (existing.length === 1 && onlyExisting) {
       return proposeEdits(
         policy,
-        [{ op: "set-threshold", stepId: existing[0].id, value }],
-        `Set the "${existing[0].label}" threshold to ${value.toLocaleString("en-US")}.`
+        [{ op: "set-threshold", stepId: onlyExisting.id, value }],
+        `Set the "${onlyExisting.label}" threshold to ${value.toLocaleString("en-US")}.`
       );
     }
     const after = lastGate(policy);
@@ -174,22 +187,24 @@ export const demoProposer: Proposer = async (instruction, policy) => {
     /require\s+(\d+)\s+of\s+(?:the\s+)?(?:\d+\s+)?(?:approvers?\s+)?(?:on|for|in)\s+(.+)$/i
   );
   if (quorum) {
-    const { step, clarify } = resolveStep(policy, quorum[2]);
-    if (!step) return clarify as EditProposal;
+    const [, rawCount, rawTarget] = quorum;
+    const { step, clarify } = resolveStep(policy, group(rawTarget));
+    if (!step) return clarify;
     return proposeEdits(
       policy,
-      [{ op: "set-mode", stepId: step.id, mode: "quorum", quorum: Number(quorum[1]) }],
-      `Require ${quorum[1]} of ${step.approvers.length} approvers on "${step.label}".`
+      [{ op: "set-mode", stepId: step.id, mode: "quorum", quorum: Number(rawCount) }],
+      `Require ${group(rawCount)} of ${step.approvers.length} approvers on "${step.label}".`
     );
   }
 
   // "Add Maria Chen (Controller) to Manager review"
   const add = text.match(/add\s+(.+?)(?:\s*\(([^)]+)\))?\s+to\s+(?:the\s+)?(.+)$/i);
   if (add) {
-    const { step, clarify } = resolveStep(policy, add[3]);
-    if (!step) return clarify as EditProposal;
-    const name = add[1].trim();
-    const title = add[2]?.trim() || "Approver";
+    const [, rawName, rawTitle, rawTarget] = add;
+    const { step, clarify } = resolveStep(policy, group(rawTarget));
+    if (!step) return clarify;
+    const name = group(rawName).trim();
+    const title = rawTitle?.trim() || "Approver";
     return runOrExplain(
       policy,
       [{ op: "add-approver", stepId: step.id, approver: { name, title } }],
@@ -198,11 +213,12 @@ export const demoProposer: Proposer = async (instruction, policy) => {
   }
 
   // "Remove Maria Chen from Finance review"
-  const removeFrom = text.match(/remove\s+(.+?)\s+from\s+(?:the\s+)?(.+)$/i);
-  if (removeFrom) {
-    const { step, clarify } = resolveStep(policy, removeFrom[2]);
-    if (!step) return clarify as EditProposal;
-    const who = removeFrom[1].trim();
+  const removalMatch = text.match(/remove\s+(.+?)\s+from\s+(?:the\s+)?(.+)$/i);
+  if (removalMatch) {
+    const [, rawWho, rawTarget] = removalMatch;
+    const { step, clarify } = resolveStep(policy, group(rawTarget));
+    if (!step) return clarify;
+    const who = group(rawWho).trim();
     const match = step.approvers.find(
       (a) => a.name !== null && normalize(a.name).includes(normalize(who))
     );
@@ -223,11 +239,12 @@ export const demoProposer: Proposer = async (instruction, policy) => {
   // "Rename Manager review to Budget owner review"
   const rename = text.match(/rename\s+(?:the\s+)?(.+?)\s+to\s+(.+)$/i);
   if (rename) {
-    const { step, clarify } = resolveStep(policy, rename[1]);
-    if (!step) return clarify as EditProposal;
+    const [, rawFrom, rawTo] = rename;
+    const { step, clarify } = resolveStep(policy, group(rawFrom));
+    if (!step) return clarify;
     return proposeEdits(
       policy,
-      [{ op: "rename-step", stepId: step.id, label: rename[2].trim() }],
+      [{ op: "rename-step", stepId: step.id, label: group(rawTo).trim() }],
       `Rename "${step.label}".`
     );
   }
@@ -235,8 +252,9 @@ export const demoProposer: Proposer = async (instruction, policy) => {
   // "Remove the Director sign-off"
   const remove = text.match(/(?:remove|delete)\s+(?:the\s+)?(.+)$/i);
   if (remove) {
-    const { step, clarify } = resolveStep(policy, remove[1]);
-    if (!step) return clarify as EditProposal;
+    const [, rawTarget] = remove;
+    const { step, clarify } = resolveStep(policy, group(rawTarget));
+    if (!step) return clarify;
     return proposeEdits(
       policy,
       [{ op: "remove-step", stepId: step.id }],
@@ -251,10 +269,14 @@ export const demoProposer: Proposer = async (instruction, policy) => {
   );
 };
 
-function runOrExplain(policy: ApprovalPolicy, ops: EditOp[], reason: string): EditProposal {
+export const demoProposer: Proposer = async (instruction, policy) => {
+  return await Promise.resolve(proposeDemoEdit(instruction, policy));
+};
+
+const runOrExplain = (policy: ApprovalPolicy, ops: EditOp[], reason: string): EditProposal => {
   try {
     return proposeEdits(policy, ops, reason);
   } catch (error) {
     return clarifyProposal(policy, error instanceof Error ? error.message : String(error));
   }
-}
+};

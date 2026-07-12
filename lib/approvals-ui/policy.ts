@@ -26,10 +26,12 @@ export type ConditionLeaf = {
 };
 
 export type Condition =
-  | { kind: "always" }
   | ConditionLeaf
+  | { kind: "always" }
   | { kind: "all"; conditions: Condition[] }
   | { kind: "any"; conditions: Condition[] };
+
+const leafValueSchema = z.union([z.string(), z.number()]);
 
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
   z.discriminatedUnion("kind", [
@@ -38,7 +40,7 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
       kind: z.literal("leaf"),
       field: z.string().min(1),
       op: z.enum(conditionOps),
-      value: z.union([z.string(), z.number()]),
+      value: leafValueSchema,
     }),
     z.object({
       kind: z.literal("all"),
@@ -49,66 +51,77 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
       conditions: z.array(conditionSchema).min(1),
     }),
   ])
-) as z.ZodType<Condition>;
+);
 
 export const always: Condition = { kind: "always" };
 
-export function leaf(field: string, op: ConditionOp, value: string | number): Condition {
+export const leaf = (field: string, op: ConditionOp, value: string | number): Condition => {
   return { kind: "leaf", field, op, value };
-}
+};
 
 /** Every leaf in the condition tree, in reading order. */
-export function collectLeaves(condition: Condition): ConditionLeaf[] {
+export const collectLeaves = (condition: Condition): ConditionLeaf[] => {
   switch (condition.kind) {
-    case "always":
+    case "always": {
       return [];
-    case "leaf":
+    }
+    case "leaf": {
       return [condition];
+    }
     case "all":
-    case "any":
-      return condition.conditions.flatMap(collectLeaves);
+    case "any": {
+      return condition.conditions.flatMap((c) => collectLeaves(c));
+    }
   }
-}
+};
 
-function formatValue(value: string | number): string {
+const formatValue = (value: string | number): string => {
   return typeof value === "number" ? value.toLocaleString("en-US") : value;
-}
+};
 
 /** Human-readable condition, for pills and tooltips. */
-export function humanizeCondition(condition: Condition): string {
+export const humanizeCondition = (condition: Condition): string => {
   switch (condition.kind) {
-    case "always":
+    case "always": {
       return "always";
-    case "leaf":
+    }
+    case "leaf": {
       return `${condition.field} ${condition.op} ${formatValue(condition.value)}`;
-    case "all":
+    }
+    case "all": {
       return condition.conditions
         .map((c) =>
           c.kind === "all" || c.kind === "any" ? `(${humanizeCondition(c)})` : humanizeCondition(c)
         )
         .join(" and ");
-    case "any":
+    }
+    case "any": {
       return condition.conditions
         .map((c) =>
           c.kind === "all" || c.kind === "any" ? `(${humanizeCondition(c)})` : humanizeCondition(c)
         )
         .join(" or ");
+    }
   }
-}
+};
 
 /** Canonical string for a condition. Stable, locale-free: used by the diff. */
-export function describeCondition(condition: Condition): string {
+export const describeCondition = (condition: Condition): string => {
   switch (condition.kind) {
-    case "always":
+    case "always": {
       return "always";
-    case "leaf":
+    }
+    case "leaf": {
       return `${condition.field}${condition.op}${String(condition.value)}`;
-    case "all":
-      return `all(${condition.conditions.map(describeCondition).join(",")})`;
-    case "any":
-      return `any(${condition.conditions.map(describeCondition).join(",")})`;
+    }
+    case "all": {
+      return `all(${condition.conditions.map((c) => describeCondition(c)).join(",")})`;
+    }
+    case "any": {
+      return `any(${condition.conditions.map((c) => describeCondition(c)).join(",")})`;
+    }
   }
-}
+};
 
 // ---------------------------------------------------------------------------
 // Approvers and steps
@@ -172,44 +185,50 @@ export type ApprovalPolicy = z.infer<typeof approvalPolicySchema>;
 // Helpers
 // ---------------------------------------------------------------------------
 
-export function isApprovalStep(step: PolicyStep): step is ApprovalStep {
+export const isApprovalStep = (step: PolicyStep): step is ApprovalStep => {
   return step.kind === "approval";
-}
+};
 
-export function isTerminalStep(step: PolicyStep): step is TerminalStep {
+export const isTerminalStep = (step: PolicyStep): step is TerminalStep => {
   return step.kind === "terminal";
-}
+};
 
-export function stepById(policy: ApprovalPolicy): Map<string, PolicyStep> {
+export const stepById = (policy: ApprovalPolicy): Map<string, PolicyStep> => {
   return new Map(policy.steps.map((s) => [s.id, s]));
-}
+};
 
 /** Assigned approver names on a gate (unassigned seats excluded). */
-export function approverNames(step: ApprovalStep): string[] {
+export const approverNames = (step: ApprovalStep): string[] => {
   return step.approvers.flatMap((a) => (a.name === null ? [] : [a.name]));
-}
+};
 
 /** How many signatures the gate needs before it passes. */
-export function requiredApprovals(step: ApprovalStep): number {
+export const requiredApprovals = (step: ApprovalStep): number => {
   switch (step.mode) {
-    case "all":
+    case "all": {
       return step.approvers.length;
-    case "any":
+    }
+    case "any": {
       return 1;
-    case "quorum":
+    }
+    case "quorum": {
       return step.quorum ?? step.approvers.length;
+    }
   }
-}
+};
 
 /** "2 of 3", "any of 2", or "all" style summary for badges. */
-export function summarizeMode(step: ApprovalStep): string {
+export const summarizeMode = (step: ApprovalStep): string => {
   const total = step.approvers.length;
   switch (step.mode) {
-    case "all":
+    case "all": {
       return total > 1 ? `all ${total}` : "1 approver";
-    case "any":
+    }
+    case "any": {
       return `any of ${total}`;
-    case "quorum":
+    }
+    case "quorum": {
       return `${step.quorum ?? total} of ${total}`;
+    }
   }
-}
+};

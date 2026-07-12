@@ -1,12 +1,13 @@
 "use client";
 
-import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
+import { Handle, type Node, type NodeProps, Position } from "@xyflow/react";
 import { CircleCheck, CircleX, Clock, UserRound } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { humanizeCondition, summarizeMode, type ApprovalStep } from "@/lib/approvals-ui/policy";
 import type { StepChange } from "@/lib/approvals-ui/diff";
 import type { IssueSeverity } from "@/lib/approvals-ui/validate";
+
+import { Badge } from "@/components/ui/badge";
+import { type ApprovalStep, humanizeCondition, summarizeMode } from "@/lib/approvals-ui/policy";
 import { cn } from "@/lib/utils";
 
 /** Live run overlay: where a given request currently sits. */
@@ -28,11 +29,11 @@ export type ApprovalNodeData = {
 
 export type ApprovalFlowNode = Node<ApprovalNodeData, "approval">;
 
-export function stateRing(data: {
+export const stateRing = (data: {
   change?: StepChange["kind"];
   issue?: IssueSeverity;
   selected?: boolean;
-}): string {
+}): string => {
   if (data.change === "added") return "ring-2 ring-emerald-500/70 border-emerald-500/40";
   if (data.change === "changed") return "ring-2 ring-amber-500/70 border-amber-500/40";
   if (data.change === "removed") return "opacity-50 border-dashed ring-2 ring-red-500/50";
@@ -40,17 +41,17 @@ export function stateRing(data: {
   if (data.issue === "warning") return "ring-2 ring-amber-500/50";
   if (data.selected) return "ring-2 ring-ring";
   return "";
-}
+};
 
-function initials(name: string): string {
+const initials = (name: string): string => {
   return name
     .split(/\s+/)
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
-}
+};
 
-function StatusBadge({ status }: { status: StepStatus }) {
+const StatusBadge = ({ status }: { status: StepStatus }) => {
   if (status === "approved") {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
@@ -77,11 +78,11 @@ function StatusBadge({ status }: { status: StepStatus }) {
     );
   }
   return <span className="text-muted-foreground text-[11px]">Skipped</span>;
-}
+};
 
-export function ApprovalNode({ data }: NodeProps<ApprovalFlowNode>) {
+export const ApprovalNode = ({ data }: NodeProps<ApprovalFlowNode>) => {
   const { step } = data;
-  const vertical = data.vertical !== false;
+  const isVertical = data.vertical !== false;
   const condition = humanizeCondition(step.when);
 
   return (
@@ -95,7 +96,7 @@ export function ApprovalNode({ data }: NodeProps<ApprovalFlowNode>) {
       {data.hasIncoming !== false && (
         <Handle
           type="target"
-          position={vertical ? Position.Top : Position.Left}
+          position={isVertical ? Position.Top : Position.Left}
           className="!bg-border !size-2 !border-none"
         />
       )}
@@ -161,10 +162,10 @@ export function ApprovalNode({ data }: NodeProps<ApprovalFlowNode>) {
       {data.hasOutgoing !== false && (
         <Handle
           type="source"
-          position={vertical ? Position.Bottom : Position.Right}
+          position={isVertical ? Position.Bottom : Position.Right}
           className="!bg-border !size-2 !border-none"
         />
       )}
     </div>
   );
-}
+};

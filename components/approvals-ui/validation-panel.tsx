@@ -2,8 +2,9 @@
 
 import { CircleCheck, OctagonX, TriangleAlert } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import type { PolicyIssue } from "@/lib/approvals-ui/validate";
+
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export type ValidationPanelProps = {
@@ -13,10 +14,7 @@ export type ValidationPanelProps = {
   className?: string;
 };
 
-export function ValidationPanel({ issues, onFocusStep, className }: ValidationPanelProps) {
-  const errors = issues.filter((i) => i.severity === "error").length;
-  const warnings = issues.length - errors;
-
+export const ValidationPanel = ({ issues, onFocusStep, className }: ValidationPanelProps) => {
   if (issues.length === 0) {
     return (
       <div className={cn("flex items-center gap-2 rounded-lg border p-3", className)}>
@@ -25,6 +23,9 @@ export function ValidationPanel({ issues, onFocusStep, className }: ValidationPa
       </div>
     );
   }
+
+  const errors = issues.filter((i) => i.severity === "error").length;
+  const warnings = issues.length - errors;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -45,13 +46,14 @@ export function ValidationPanel({ issues, onFocusStep, className }: ValidationPa
       </div>
       <ul className="space-y-1">
         {issues.map((issue, index) => {
-          const clickable = onFocusStep && issue.stepIds.length > 0;
+          const firstStepId = issue.stepIds[0];
+          const clickable = onFocusStep && firstStepId !== undefined;
           return (
             <li key={`${issue.code}-${index}`}>
               <button
                 type="button"
                 disabled={!clickable}
-                onClick={() => clickable && onFocusStep(issue.stepIds[0])}
+                onClick={() => clickable && onFocusStep(firstStepId)}
                 className={cn(
                   "flex w-full items-start gap-2 rounded-md p-2 text-left",
                   clickable && "hover:bg-muted/60 cursor-pointer transition-colors"
@@ -75,4 +77,4 @@ export function ValidationPanel({ issues, onFocusStep, className }: ValidationPa
       </ul>
     </div>
   );
-}
+};

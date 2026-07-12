@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   CircleMinus,
   CirclePlus,
@@ -9,12 +8,14 @@ import {
   Pencil,
   Sparkles,
 } from "lucide-react";
+import { useState } from "react";
+
+import type { EditProposal, Proposer } from "@/lib/approvals-ui/edit-ops";
+import type { ApprovalPolicy } from "@/lib/approvals-ui/policy";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { hasChanges, summarizeChanges } from "@/lib/approvals-ui/diff";
-import type { EditProposal, Proposer } from "@/lib/approvals-ui/edit-ops";
-import type { ApprovalPolicy } from "@/lib/approvals-ui/policy";
 import { cn } from "@/lib/utils";
 
 /**
@@ -40,7 +41,7 @@ export type NlEditPanelProps = {
   className?: string;
 };
 
-export function NlEditPanel({
+export const NlEditPanel = ({
   policy,
   proposer,
   proposal,
@@ -51,12 +52,12 @@ export function NlEditPanel({
   suggestions = [],
   placeholder = "Above $50k also require the CFO",
   className,
-}: NlEditPanelProps) {
+}: NlEditPanelProps) => {
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function propose(text: string) {
+  const propose = async (text: string) => {
     const trimmed = text.trim();
     if (trimmed.length === 0 || busy) return;
     setBusy(true);
@@ -64,25 +65,25 @@ export function NlEditPanel({
     onProposalChange(null);
     try {
       onProposalChange(await proposer(trimmed, policy));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : String(error_));
     } finally {
       setBusy(false);
     }
-  }
+  };
 
-  function apply() {
+  const apply = () => {
     if (!proposal || blockApply) return;
     onApply(proposal.proposed);
     onProposalChange(null);
     setInstruction("");
-  }
+  };
 
-  function discard() {
+  const discard = () => {
     onProposalChange(null);
-  }
+  };
 
-  const mutating = proposal !== null && hasChanges(proposal.changes);
+  const isMutating = proposal !== null && hasChanges(proposal.changes);
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -156,7 +157,7 @@ export function NlEditPanel({
             {proposal.reason && <p className="text-muted-foreground text-xs">{proposal.reason}</p>}
           </div>
 
-          {mutating && (
+          {isMutating && (
             <ul className="space-y-1">
               {proposal.changes
                 .filter((change) => change.kind !== "unchanged")
@@ -186,7 +187,7 @@ export function NlEditPanel({
           )}
 
           <div className="flex items-center gap-2">
-            {mutating && (
+            {isMutating && (
               <Button size="sm" onClick={apply} disabled={blockApply}>
                 Apply
               </Button>
@@ -202,4 +203,4 @@ export function NlEditPanel({
       )}
     </div>
   );
-}
+};

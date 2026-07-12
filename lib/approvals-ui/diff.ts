@@ -1,4 +1,4 @@
-import { describeCondition, type ApprovalPolicy, type PolicyStep } from "./policy";
+import { type ApprovalPolicy, describeCondition, type PolicyStep } from "./policy";
 
 /**
  * Step-level diff between two policies, keyed by step id. This is the unit
@@ -11,20 +11,20 @@ export type StepChange =
   | { kind: "changed"; id: string; label: string; fields: string[] }
   | { kind: "unchanged"; id: string; label: string };
 
-function roster(step: PolicyStep): string {
+const roster = (step: PolicyStep): string => {
   if (step.kind !== "approval") return "";
   return step.approvers.map((a) => `${a.name ?? "?"}:${a.title}`).join("|");
-}
+};
 
-function slaKey(step: PolicyStep): string {
+const slaKey = (step: PolicyStep): string => {
   if (step.kind !== "approval" || !step.sla) return "";
   const escalate = step.sla.escalateTo
     ? `${step.sla.escalateTo.name ?? "?"}:${step.sla.escalateTo.title}`
     : "";
   return `${step.sla.hours}h${escalate}`;
-}
+};
 
-export function stepFieldDiffs(before: PolicyStep, after: PolicyStep): string[] {
+export const stepFieldDiffs = (before: PolicyStep, after: PolicyStep): string[] => {
   const fields: string[] = [];
   if (before.kind !== after.kind) fields.push("type");
   if (before.label !== after.label) fields.push("label");
@@ -45,9 +45,9 @@ export function stepFieldDiffs(before: PolicyStep, after: PolicyStep): string[] 
   }
   if (before.next.join(",") !== after.next.join(",")) fields.push("routing");
   return fields;
-}
+};
 
-export function diffPolicies(current: ApprovalPolicy, proposed: ApprovalPolicy): StepChange[] {
+export const diffPolicies = (current: ApprovalPolicy, proposed: ApprovalPolicy): StepChange[] => {
   const before = new Map(current.steps.map((s) => [s.id, s]));
   const after = new Map(proposed.steps.map((s) => [s.id, s]));
   const changes: StepChange[] = [];
@@ -73,23 +73,22 @@ export function diffPolicies(current: ApprovalPolicy, proposed: ApprovalPolicy):
   }
 
   return changes;
-}
+};
 
 /** True when the diff contains a real mutation. */
-export function hasChanges(changes: StepChange[]): boolean {
+export const hasChanges = (changes: StepChange[]): boolean => {
   return changes.some((c) => c.kind !== "unchanged");
-}
+};
 
 /** "2 added, 1 changed, 1 removed" style summary for the proposal banner. */
-export function summarizeChanges(changes: StepChange[]): string {
-  const counts = { added: 0, changed: 0, removed: 0 };
-  for (const c of changes) {
-    if (c.kind === "added") counts.added += 1;
-    if (c.kind === "changed") counts.changed += 1;
-    if (c.kind === "removed") counts.removed += 1;
-  }
+export const summarizeChanges = (changes: StepChange[]): string => {
+  const counts = {
+    added: changes.filter((c) => c.kind === "added").length,
+    changed: changes.filter((c) => c.kind === "changed").length,
+    removed: changes.filter((c) => c.kind === "removed").length,
+  };
   const parts = Object.entries(counts)
     .filter(([, n]) => n > 0)
     .map(([kind, n]) => `${n} ${kind}`);
   return parts.length > 0 ? parts.join(", ") : "no changes";
-}
+};

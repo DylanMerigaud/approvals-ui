@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { examplePolicy } from "./example-policy";
+
 import type { ApprovalPolicy, ApprovalStep, PolicyStep } from "./policy";
+
+import { examplePolicy } from "./example-policy";
 import { isActivatable, validatePolicy } from "./validate";
 
-function policy(steps: PolicyStep[], roots: string[]): ApprovalPolicy {
+const policy = (steps: PolicyStep[], roots: string[]): ApprovalPolicy => {
   return { name: "test", steps, roots };
-}
+};
 
-function approvedTerminal(id = "approved"): PolicyStep {
+const approvedTerminal = (id = "approved"): PolicyStep => {
   return {
     id,
     kind: "terminal",
@@ -16,11 +18,11 @@ function approvedTerminal(id = "approved"): PolicyStep {
     outcome: "approved",
     next: [],
   };
-}
+};
 
 type GateExtra = Partial<Pick<ApprovalStep, "label" | "when" | "approvers" | "mode" | "quorum">>;
 
-function gate(id: string, next: string[], extra: GateExtra = {}): PolicyStep {
+const gate = (id: string, next: string[], extra: GateExtra = {}): PolicyStep => {
   return {
     id,
     kind: "approval",
@@ -31,11 +33,11 @@ function gate(id: string, next: string[], extra: GateExtra = {}): PolicyStep {
     quorum: extra.quorum,
     next,
   };
-}
+};
 
-function codes(p: ApprovalPolicy): string[] {
+const codes = (p: ApprovalPolicy): string[] => {
   return validatePolicy(p).map((i) => i.code);
-}
+};
 
 describe("validatePolicy", () => {
   it("flags only the unassigned director seat on the example policy", () => {

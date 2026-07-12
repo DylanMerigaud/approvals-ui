@@ -8,18 +8,21 @@ export default [
   ...next({ tsconfigRootDir: import.meta.dirname }),
   ...vitest(),
 
+  // registry.json is data, not source: it is the shadcn registry manifest. eslint
+  // has no business type-checking a JSON file (the typed TS rules crash on it),
+  // and prettier already owns its formatting.
+  { ignores: ["registry.json", "components.json"] },
+
   // Repo-local overrides for this shadcn registry.
   //
   // This repo is a shadcn REGISTRY: `shadcn build` packages the files under
-  // components/ and lib/ so other projects install them via `shadcn add`. Those
-  // distributed files carry a couple of constraints the shared preset does not
-  // assume, so we relax exactly those rules for exactly those paths.
+  // components/ and lib/approvals-ui/ so other projects install them via
+  // `shadcn add`. A distributed component is commonly authored as a default
+  // export (that is how a consumer imports a single-component file after
+  // `shadcn add`), so allow default exports across the distributed surface.
   {
-    files: ["components/**/*.{ts,tsx}", "lib/approvals-ui/**/*.{ts,tsx}", "registry.json"],
+    files: ["components/**/*.{ts,tsx}", "lib/approvals-ui/**/*.{ts,tsx}"],
     rules: {
-      // A registry component may legitimately be authored as a default export
-      // (that is how a consumer usually imports a single-component file after
-      // `shadcn add`). Allow default exports in the distributed surface.
       "import-x/no-default-export": "off",
     },
   },

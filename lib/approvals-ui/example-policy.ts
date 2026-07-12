@@ -23,7 +23,7 @@ export const examplePolicy: ApprovalPolicy = {
       id: "finance-review",
       kind: "approval",
       label: "Finance review",
-      when: { kind: "leaf", field: "amount", op: ">", value: 5_000 },
+      when: { kind: "leaf", field: "amount", op: ">", value: 5000 },
       approvers: [
         { name: "Priya Patel", title: "Controller" },
         { name: "Sam Okafor", title: "FP&A Lead" },

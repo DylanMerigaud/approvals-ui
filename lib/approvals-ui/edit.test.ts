@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
+
 import { demoProposer } from "./demo-proposer";
 import { diffPolicies, hasChanges, summarizeChanges } from "./diff";
 import { applyEditOp, EditError, proposeEdits } from "./edit-ops";
 import { examplePolicy } from "./example-policy";
-import { isApprovalStep, type ApprovalStep } from "./policy";
+import { type ApprovalStep, isApprovalStep } from "./policy";
 
-function step(policyLike: typeof examplePolicy, id: string): ApprovalStep {
+const step = (policyLike: typeof examplePolicy, id: string): ApprovalStep => {
   const found = policyLike.steps.find((s) => s.id === id);
   if (!found || !isApprovalStep(found)) throw new Error(`no approval step ${id}`);
   return found;
-}
+};
 
 describe("diffPolicies", () => {
   it("reports renames as changed with the label field", () => {
@@ -45,9 +46,9 @@ describe("applyEditOp", () => {
     const proposed = applyEditOp(examplePolicy, {
       op: "set-threshold",
       stepId: "manager-review",
-      value: 1_000,
+      value: 1000,
     });
-    expect(step(proposed, "manager-review").when).toMatchObject({ kind: "leaf", value: 1_000 });
+    expect(step(proposed, "manager-review").when).toMatchObject({ kind: "leaf", value: 1000 });
   });
 
   it("set-threshold wraps an unrelated guard in an all()", () => {
@@ -59,7 +60,7 @@ describe("applyEditOp", () => {
     const proposed = applyEditOp(withDept, {
       op: "set-threshold",
       stepId: "manager-review",
-      value: 2_000,
+      value: 2000,
     });
     expect(step(proposed, "manager-review").when.kind).toBe("all");
   });

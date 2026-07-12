@@ -1,13 +1,13 @@
 import {
+  type ApprovalPolicy,
+  type ApprovalStep,
   approverNames,
   collectLeaves,
   describeCondition,
   isApprovalStep,
   isTerminalStep,
-  stepById,
-  type ApprovalPolicy,
-  type ApprovalStep,
   type PolicyStep,
+  stepById,
 } from "./policy";
 
 /**
@@ -41,10 +41,10 @@ const DEFAULTS: Required<ValidateOptions> = {
   amountField: "amount",
 };
 
-export function validatePolicy(
+export const validatePolicy = (
   policy: ApprovalPolicy,
   options: ValidateOptions = {}
-): PolicyIssue[] {
+): PolicyIssue[] => {
   const opts = { ...DEFAULTS, ...options };
   const byId = stepById(policy);
   const issues: PolicyIssue[] = [
@@ -60,23 +60,23 @@ export function validatePolicy(
     ...pathRules(policy, byId, opts),
   ];
   return dedupe(issues);
-}
+};
 
 /** No error-severity issue: safe to activate. */
-export function isActivatable(issues: PolicyIssue[]): boolean {
+export const isActivatable = (issues: PolicyIssue[]): boolean => {
   return issues.every((i) => i.severity !== "error");
-}
+};
 
 // ---------------------------------------------------------------------------
 // Structural rules (errors)
 // ---------------------------------------------------------------------------
 
-function duplicateStepIds(policy: ApprovalPolicy): PolicyIssue[] {
+const duplicateStepIds = (policy: ApprovalPolicy): PolicyIssue[] => {
   const seen = new Map<string, number>();
   for (const step of policy.steps) {
     seen.set(step.id, (seen.get(step.id) ?? 0) + 1);
   }
-  return [...seen.entries()]
+  return [...seen]
     .filter(([, count]) => count > 1)
     .map(([id]) => ({
       severity: "error" as const,
@@ -84,9 +84,9 @@ function duplicateStepIds(policy: ApprovalPolicy): PolicyIssue[] {
       message: `Step id "${id}" is used more than once.`,
       stepIds: [id],
     }));
-}
+};
 
-function danglingEdges(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
+const danglingEdges = (policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] => {
   const issues: PolicyIssue[] = [];
   for (const step of policy.steps) {
     for (const nextId of step.next) {
@@ -101,9 +101,9 @@ function danglingEdges(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): P
     }
   }
   return issues;
-}
+};
 
-function rootsValid(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
+const rootsValid = (policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] => {
   if (policy.roots.length === 0) {
     return [
       {
@@ -122,9 +122,28 @@ function rootsValid(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): Poli
       message: `Entry point "${id}" is not a step in the policy.`,
       stepIds: [id],
     }));
-}
+};
 
-function cycleFree(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
+/**
+ * Drop one from the indegree of each existing successor of `step`, and queue
+ * any successor whose indegree reaches zero. The inner half of Kahn's loop,
+ * lifted into its own function so the outer traversal stays a single loop.
+ */
+const relaxSuccessors = (
+  step: PolicyStep,
+  byId: Map<string, PolicyStep>,
+  indegree: Map<string, number>,
+  queue: string[]
+): void => {
+  for (const nextId of step.next) {
+    if (!byId.has(nextId)) continue;
+    const d = (indegree.get(nextId) ?? 0) - 1;
+    indegree.set(nextId, d);
+    if (d === 0) queue.push(nextId);
+  }
+};
+
+const cycleFree = (policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] => {
   const indegree = new Map<string, number>();
   for (const step of policy.steps) indegree.set(step.id, 0);
   for (const step of policy.steps) {
@@ -134,22 +153,18 @@ function cycleFree(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): Polic
       }
     }
   }
-  const queue = [...indegree.entries()].filter(([, d]) => d === 0).map(([id]) => id);
+  const queue = [...indegree].filter(([, d]) => d === 0).map(([id]) => id);
   let processed = 0;
   while (queue.length > 0) {
-    const id = queue.shift() as string;
+    const id = queue.shift();
+    if (id === undefined) continue;
     processed += 1;
     const step = byId.get(id);
     if (!step) continue;
-    for (const nextId of step.next) {
-      if (!byId.has(nextId)) continue;
-      const d = (indegree.get(nextId) ?? 0) - 1;
-      indegree.set(nextId, d);
-      if (d === 0) queue.push(nextId);
-    }
+    relaxSuccessors(step, byId, indegree, queue);
   }
   if (processed >= byId.size) return [];
-  const stuck = [...indegree.entries()].filter(([, d]) => d > 0).map(([id]) => id);
+  const stuck = [...indegree].filter(([, d]) => d > 0).map(([id]) => id);
   return [
     {
       severity: "error",
@@ -158,13 +173,14 @@ function cycleFree(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): Polic
       stepIds: stuck,
     },
   ];
-}
+};
 
-function reachableFromRoots(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): Set<string> {
+const reachableFromRoots = (policy: ApprovalPolicy, byId: Map<string, PolicyStep>): Set<string> => {
   const reached = new Set<string>();
   const queue = policy.roots.filter((id) => byId.has(id));
   while (queue.length > 0) {
-    const id = queue.shift() as string;
+    const id = queue.shift();
+    if (id === undefined) continue;
     if (reached.has(id)) continue;
     reached.add(id);
     const step = byId.get(id);
@@ -174,9 +190,9 @@ function reachableFromRoots(policy: ApprovalPolicy, byId: Map<string, PolicyStep
     }
   }
   return reached;
-}
+};
 
-function reachability(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
+const reachability = (policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] => {
   const reached = reachableFromRoots(policy, byId);
   return policy.steps
     .filter((step) => !reached.has(step.id))
@@ -186,9 +202,9 @@ function reachability(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): Po
       message: `"${step.label}" can never be reached from an entry point.`,
       stepIds: [step.id],
     }));
-}
+};
 
-function terminals(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
+const terminals = (policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] => {
   const terminalSteps = policy.steps.filter(isTerminalStep);
   if (terminalSteps.length === 0) {
     return [
@@ -212,7 +228,7 @@ function terminals(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): Polic
     ];
   }
   const reached = reachableFromRoots(policy, byId);
-  if (!approved.some((t) => reached.has(t.id))) {
+  if (approved.every((t) => !reached.has(t.id))) {
     return [
       {
         severity: "error",
@@ -223,9 +239,9 @@ function terminals(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): Polic
     ];
   }
   return [];
-}
+};
 
-function quorumValid(policy: ApprovalPolicy): PolicyIssue[] {
+const quorumValid = (policy: ApprovalPolicy): PolicyIssue[] => {
   const issues: PolicyIssue[] = [];
   for (const step of policy.steps) {
     if (!isApprovalStep(step)) continue;
@@ -248,13 +264,13 @@ function quorumValid(policy: ApprovalPolicy): PolicyIssue[] {
     }
   }
   return issues;
-}
+};
 
 // ---------------------------------------------------------------------------
 // Best-practice rules (warnings)
 // ---------------------------------------------------------------------------
 
-function unresolvedApprovers(policy: ApprovalPolicy): PolicyIssue[] {
+const unresolvedApprovers = (policy: ApprovalPolicy): PolicyIssue[] => {
   const issues: PolicyIssue[] = [];
   for (const step of policy.steps) {
     if (!isApprovalStep(step)) continue;
@@ -270,20 +286,16 @@ function unresolvedApprovers(policy: ApprovalPolicy): PolicyIssue[] {
     }
   }
   return issues;
-}
+};
 
-function duplicateGates(policy: ApprovalPolicy): PolicyIssue[] {
+const duplicateGates = (policy: ApprovalPolicy): PolicyIssue[] => {
   const seen = new Map<string, ApprovalStep>();
   const issues: PolicyIssue[] = [];
   for (const step of policy.steps) {
     if (!isApprovalStep(step)) continue;
-    const key = [
-      step.approvers
-        .map((a) => `${a.name ?? "?"}:${a.title}`)
-        .sort()
-        .join("|"),
-      describeCondition(step.when),
-    ].join("::");
+    const roster = step.approvers.map((a) => `${a.name ?? "?"}:${a.title}`);
+    roster.sort((a, b) => a.localeCompare(b));
+    const key = [roster.join("|"), describeCondition(step.when)].join("::");
     const prior = seen.get(key);
     if (prior) {
       issues.push({
@@ -297,7 +309,7 @@ function duplicateGates(policy: ApprovalPolicy): PolicyIssue[] {
     }
   }
   return issues;
-}
+};
 
 // ---------------------------------------------------------------------------
 // Path rules (walk every root-to-approved path)
@@ -305,7 +317,7 @@ function duplicateGates(policy: ApprovalPolicy): PolicyIssue[] {
 
 const MAX_PATHS = 2000;
 
-function pathsToApproved(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyStep[][] {
+const pathsToApproved = (policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyStep[][] => {
   const paths: PolicyStep[][] = [];
   const walk = (step: PolicyStep, path: PolicyStep[], seen: Set<string>) => {
     if (paths.length >= MAX_PATHS || seen.has(step.id)) return;
@@ -326,33 +338,40 @@ function pathsToApproved(policy: ApprovalPolicy, byId: Map<string, PolicyStep>):
     if (root) walk(root, [], new Set());
   }
   return paths;
-}
+};
 
 /**
  * The lowest amount that traverses this path: the max of the lower bounds
  * set by amount guards along it. A path guarded by "amount > 25,000" has a
  * floor of 25,000; an unguarded path has a floor of 0.
  */
-function amountFloor(path: PolicyStep[], amountField: string): number {
+const amountFloor = (path: PolicyStep[], amountField: string): number => {
   let floor = 0;
   for (const step of path) {
     for (const l of collectLeaves(step.when)) {
-      if (l.field !== amountField || typeof l.value !== "number") continue;
-      if (l.op === ">" || l.op === ">=") floor = Math.max(floor, l.value);
+      if (
+        l.field === amountField &&
+        typeof l.value === "number" &&
+        (l.op === ">" || l.op === ">=")
+      ) {
+        floor = Math.max(floor, l.value);
+      }
     }
   }
   return floor;
-}
+};
 
-function pathRules(
+const pathRules = (
   policy: ApprovalPolicy,
   byId: Map<string, PolicyStep>,
   opts: Required<ValidateOptions>
-): PolicyIssue[] {
+): PolicyIssue[] => {
   const issues: PolicyIssue[] = [];
   for (const path of pathsToApproved(policy, byId)) {
     const gates = path.filter(isApprovalStep);
-    const terminal = path[path.length - 1];
+    const terminal = path.at(-1);
+    // Every path built by pathsToApproved is non-empty and ends at a terminal.
+    if (!terminal) continue;
 
     if (gates.length === 0) {
       issues.push({
@@ -393,18 +412,20 @@ function pathRules(
     }
   }
   return issues;
-}
+};
 
 // ---------------------------------------------------------------------------
 
-function dedupe(issues: PolicyIssue[]): PolicyIssue[] {
+const dedupe = (issues: PolicyIssue[]): PolicyIssue[] => {
   const seen = new Set<string>();
   const out: PolicyIssue[] = [];
   for (const issue of issues) {
-    const key = `${issue.code}::${[...issue.stepIds].sort().join(",")}`;
+    const sortedStepIds = [...issue.stepIds];
+    sortedStepIds.sort((a, b) => a.localeCompare(b));
+    const key = `${issue.code}::${sortedStepIds.join(",")}`;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(issue);
   }
   return out;
-}
+};
