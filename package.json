@@ -2,14 +2,20 @@
   "name": "approvals-ui",
   "version": "0.1.0",
   "private": true,
+  "prettier": "@dylanmerigaud/config/prettier",
   "scripts": {
     "dev": "next dev",
     "build": "shadcn build && next build",
     "start": "next start",
-    "lint": "eslint",
-    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "registry:build": "shadcn build"
+    "knip": "knip",
+    "test": "vitest run",
+    "validate": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run knip",
+    "registry:build": "shadcn build",
+    "prepare": "husky"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -27,17 +33,37 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@dylanmerigaud/config": "^0.2.2",
     "@tailwindcss/postcss": "^4",
     "@types/dagre": "^0.7.54",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint": "^10.7.0",
+    "husky": "^9.1.7",
+    "knip": "^6.26.0",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.9.5",
     "shadcn": "^4.13.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.10"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "eslint-plugin-jsx-a11y>eslint": "10"
+      }
+    }
   },
   "packageManager": "pnpm@9.15.0"
 }

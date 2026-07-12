@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "app/**/{page,layout,not-found,error,loading,route,opengraph-image}.{ts,tsx}",
+    "next.config.ts",
+    "eslint.config.mts",
+    "registry.json",
+    "components/**/*.{ts,tsx}",
+    "lib/approvals-ui/**/*.{ts,tsx}"
+  ],
+  "project": ["**/*.{ts,tsx}"],
+  "ignoreDependencies": ["husky", "@dylanmerigaud/config"]
+}
