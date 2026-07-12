@@ -2,6 +2,7 @@
 
 import { Handle, type Node, type NodeProps, Position } from "@xyflow/react";
 import { CircleCheck, CircleX, Clock, UserRound } from "lucide-react";
+import { useMemo } from "react";
 
 import type { StepChange } from "@/lib/approvals-ui/diff";
 import type { IssueSeverity } from "@/lib/approvals-ui/validate";
@@ -51,6 +52,23 @@ const initials = (name: string): string => {
     .join("");
 };
 
+/**
+ * Approvers carry no id, and a gate can legitimately hold two identical seats
+ * (e.g. two unassigned "Finance Director" seats), so content alone is not a
+ * unique key. Derive a stable key from the content plus a per-content
+ * occurrence count: identical seats get "…#0", "…#1", and the key stays tied to
+ * the item rather than to the raw array position.
+ */
+const approverKeys = (approvers: readonly ApprovalStep["approvers"][number][]): string[] => {
+  const seen = new Map<string, number>();
+  return approvers.map((approver) => {
+    const base = `${approver.name ?? "open"}|${approver.title}`;
+    const n = seen.get(base) ?? 0;
+    seen.set(base, n + 1);
+    return `${base}#${n}`;
+  });
+};
+
 const StatusBadge = ({ status }: { status: StepStatus }) => {
   if (status === "approved") {
     return (
@@ -84,6 +102,7 @@ export const ApprovalNode = ({ data }: NodeProps<ApprovalFlowNode>) => {
   const { step } = data;
   const isVertical = data.vertical !== false;
   const condition = humanizeCondition(step.when);
+  const keys = useMemo(() => approverKeys(step.approvers), [step.approvers]);
 
   return (
     <div
@@ -118,7 +137,7 @@ export const ApprovalNode = ({ data }: NodeProps<ApprovalFlowNode>) => {
 
       <div className="space-y-1.5 px-3.5 py-3">
         {step.approvers.map((approver, index) => (
-          <div key={`${approver.name ?? "open"}-${index}`} className="flex items-center gap-2">
+          <div key={keys[index]} className="flex items-center gap-2">
             {approver.name === null ? (
               <span className="border-muted-foreground/50 text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed">
                 <UserRound className="size-3" />

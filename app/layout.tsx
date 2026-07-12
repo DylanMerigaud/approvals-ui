@@ -34,6 +34,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        {/* eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml -- trusted static theme-init script (module constant, no user or external input); must run inline before hydration to set the theme class and avoid a flash of the wrong theme */}
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         {children}
       </body>

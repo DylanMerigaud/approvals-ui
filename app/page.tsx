@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowRight, Check, Copy, Moon, RotateCcw, Sparkles, Sun } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
 import type { EditProposal } from "@/lib/approvals-ui/edit-ops";
 
@@ -146,11 +146,24 @@ const AgentPromptButton = () => {
   );
 };
 
+// The active theme lives outside React: the inline script in the layout adds
+// the "dark" class to <html> before hydration, so the DOM class is the source
+// of truth. Reading it during render (instead of syncing it into state in an
+// effect) is exactly what useSyncExternalStore is for. The server snapshot is
+// null because SSR cannot know the client class, which keeps the placeholder
+// render and avoids a hydration mismatch.
+const subscribeToThemeClass = (onChange: () => void): (() => void) => {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+};
+
 const ThemeToggle = () => {
-  const [dark, setDark] = useState<boolean | null>(null);
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
+  const dark = useSyncExternalStore(
+    subscribeToThemeClass,
+    () => document.documentElement.classList.contains("dark"),
+    () => null
+  );
   if (dark === null) return <Button variant="ghost" size="icon" aria-hidden className="size-8" />;
   return (
     <Button
@@ -166,7 +179,7 @@ const ThemeToggle = () => {
         } catch {
           /* localStorage can throw in private mode or when storage is full; ignore */
         }
-        setDark(isNext);
+        // No setState: toggling the class notifies the store subscriber above.
       }}
     >
       {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}

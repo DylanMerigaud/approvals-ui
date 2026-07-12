@@ -45,11 +45,15 @@ export const ValidationPanel = ({ issues, onFocusStep, className }: ValidationPa
         )}
       </div>
       <ul className="space-y-1">
-        {issues.map((issue, index) => {
+        {issues.map((issue) => {
           const firstStepId = issue.stepIds[0];
           const clickable = onFocusStep && firstStepId !== undefined;
+          // validatePolicy dedupes on code + sorted stepIds and each rule emits
+          // its stepIds in a deterministic order, so code + stepIds is a stable
+          // unique identity for the issue (no array index needed).
+          const key = `${issue.code}::${issue.stepIds.join(",")}`;
           return (
-            <li key={`${issue.code}-${index}`}>
+            <li key={key}>
               <button
                 type="button"
                 disabled={!clickable}
