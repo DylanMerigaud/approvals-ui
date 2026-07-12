@@ -1,4 +1,4 @@
-import type { ApprovalPolicy } from "./policy"
+import type { ApprovalPolicy } from "./policy";
 
 /**
  * A realistic procurement policy to start from: a manager gate, a finance
@@ -52,4 +52,4 @@ export const examplePolicy: ApprovalPolicy = {
       next: [],
     },
   ],
-}
+};

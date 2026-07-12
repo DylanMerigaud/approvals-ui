@@ -10,11 +10,31 @@
       "description": "Headless core for approval policies: Zod schema (gates, quorums, conditions, SLAs), a policy lint with structural errors and best-practice warnings, a step-level diff, and deterministic edit ops for safe LLM or form-driven edits.",
       "dependencies": ["zod"],
       "files": [
-        { "path": "lib/approvals-ui/policy.ts", "type": "registry:lib", "target": "lib/approvals-ui/policy.ts" },
-        { "path": "lib/approvals-ui/validate.ts", "type": "registry:lib", "target": "lib/approvals-ui/validate.ts" },
-        { "path": "lib/approvals-ui/diff.ts", "type": "registry:lib", "target": "lib/approvals-ui/diff.ts" },
-        { "path": "lib/approvals-ui/edit-ops.ts", "type": "registry:lib", "target": "lib/approvals-ui/edit-ops.ts" },
-        { "path": "lib/approvals-ui/example-policy.ts", "type": "registry:lib", "target": "lib/approvals-ui/example-policy.ts" }
+        {
+          "path": "lib/approvals-ui/policy.ts",
+          "type": "registry:lib",
+          "target": "lib/approvals-ui/policy.ts"
+        },
+        {
+          "path": "lib/approvals-ui/validate.ts",
+          "type": "registry:lib",
+          "target": "lib/approvals-ui/validate.ts"
+        },
+        {
+          "path": "lib/approvals-ui/diff.ts",
+          "type": "registry:lib",
+          "target": "lib/approvals-ui/diff.ts"
+        },
+        {
+          "path": "lib/approvals-ui/edit-ops.ts",
+          "type": "registry:lib",
+          "target": "lib/approvals-ui/edit-ops.ts"
+        },
+        {
+          "path": "lib/approvals-ui/example-policy.ts",
+          "type": "registry:lib",
+          "target": "lib/approvals-ui/example-policy.ts"
+        }
       ]
     },
     {
@@ -23,12 +43,13 @@
       "title": "Approval node",
       "description": "The approval gate card for React Flow: approvers with unassigned seats, quorum badge, condition pill, SLA badge, plus diff, validation, and live-status rings.",
       "dependencies": ["@xyflow/react", "lucide-react"],
-      "registryDependencies": [
-        "badge",
-        "https://approvals-ui.vercel.app/r/approvals-core.json"
-      ],
+      "registryDependencies": ["badge", "https://approvals-ui.vercel.app/r/approvals-core.json"],
       "files": [
-        { "path": "components/approvals-ui/approval-node.tsx", "type": "registry:component", "target": "components/approvals-ui/approval-node.tsx" }
+        {
+          "path": "components/approvals-ui/approval-node.tsx",
+          "type": "registry:component",
+          "target": "components/approvals-ui/approval-node.tsx"
+        }
       ]
     },
     {
@@ -42,7 +63,11 @@
         "https://approvals-ui.vercel.app/r/approvals-core.json"
       ],
       "files": [
-        { "path": "components/approvals-ui/terminal-node.tsx", "type": "registry:component", "target": "components/approvals-ui/terminal-node.tsx" }
+        {
+          "path": "components/approvals-ui/terminal-node.tsx",
+          "type": "registry:component",
+          "target": "components/approvals-ui/terminal-node.tsx"
+        }
       ]
     },
     {
@@ -58,7 +83,11 @@
         "https://approvals-ui.vercel.app/r/approvals-core.json"
       ],
       "files": [
-        { "path": "components/approvals-ui/workflow-canvas.tsx", "type": "registry:component", "target": "components/approvals-ui/workflow-canvas.tsx" }
+        {
+          "path": "components/approvals-ui/workflow-canvas.tsx",
+          "type": "registry:component",
+          "target": "components/approvals-ui/workflow-canvas.tsx"
+        }
       ]
     },
     {
@@ -67,12 +96,13 @@
       "title": "Validation panel",
       "description": "Lists policy issues with severities: structural errors that should block activation and best-practice warnings (segregation of duties, single approver on high value, unassigned seats). Click an issue to focus the step on the canvas.",
       "dependencies": ["lucide-react"],
-      "registryDependencies": [
-        "badge",
-        "https://approvals-ui.vercel.app/r/approvals-core.json"
-      ],
+      "registryDependencies": ["badge", "https://approvals-ui.vercel.app/r/approvals-core.json"],
       "files": [
-        { "path": "components/approvals-ui/validation-panel.tsx", "type": "registry:component", "target": "components/approvals-ui/validation-panel.tsx" }
+        {
+          "path": "components/approvals-ui/validation-panel.tsx",
+          "type": "registry:component",
+          "target": "components/approvals-ui/validation-panel.tsx"
+        }
       ]
     },
     {
@@ -87,8 +117,16 @@
         "https://approvals-ui.vercel.app/r/approvals-core.json"
       ],
       "files": [
-        { "path": "components/approvals-ui/nl-edit-panel.tsx", "type": "registry:component", "target": "components/approvals-ui/nl-edit-panel.tsx" },
-        { "path": "lib/approvals-ui/demo-proposer.ts", "type": "registry:lib", "target": "lib/approvals-ui/demo-proposer.ts" }
+        {
+          "path": "components/approvals-ui/nl-edit-panel.tsx",
+          "type": "registry:component",
+          "target": "components/approvals-ui/nl-edit-panel.tsx"
+        },
+        {
+          "path": "lib/approvals-ui/demo-proposer.ts",
+          "type": "registry:lib",
+          "target": "lib/approvals-ui/demo-proposer.ts"
+        }
       ]
     }
   ]

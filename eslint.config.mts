@@ -15,11 +15,7 @@ export default [
   // distributed files carry a couple of constraints the shared preset does not
   // assume, so we relax exactly those rules for exactly those paths.
   {
-    files: [
-      "components/**/*.{ts,tsx}",
-      "lib/approvals-ui/**/*.{ts,tsx}",
-      "registry.json",
-    ],
+    files: ["components/**/*.{ts,tsx}", "lib/approvals-ui/**/*.{ts,tsx}", "registry.json"],
     rules: {
       // A registry component may legitimately be authored as a default export
       // (that is how a consumer usually imports a single-component file after

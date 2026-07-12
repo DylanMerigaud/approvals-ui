@@ -8,7 +8,7 @@ import {
   type ApprovalPolicy,
   type ApprovalStep,
   type PolicyStep,
-} from "./policy"
+} from "./policy";
 
 /**
  * Deterministic policy validation. Two severities:
@@ -20,33 +20,33 @@ import {
  *   path with a single approver). Surface them, let the human decide.
  */
 
-export type IssueSeverity = "error" | "warning"
+export type IssueSeverity = "error" | "warning";
 
 export type PolicyIssue = {
-  severity: IssueSeverity
-  code: string
-  message: string
-  stepIds: string[]
-}
+  severity: IssueSeverity;
+  code: string;
+  message: string;
+  stepIds: string[];
+};
 
 export type ValidateOptions = {
   /** Amount above which a path should carry at least two approval gates. */
-  materiality?: number
+  materiality?: number;
   /** The request field carrying the monetary amount. */
-  amountField?: string
-}
+  amountField?: string;
+};
 
 const DEFAULTS: Required<ValidateOptions> = {
   materiality: 25_000,
   amountField: "amount",
-}
+};
 
 export function validatePolicy(
   policy: ApprovalPolicy,
-  options: ValidateOptions = {},
+  options: ValidateOptions = {}
 ): PolicyIssue[] {
-  const opts = { ...DEFAULTS, ...options }
-  const byId = stepById(policy)
+  const opts = { ...DEFAULTS, ...options };
+  const byId = stepById(policy);
   const issues: PolicyIssue[] = [
     ...duplicateStepIds(policy),
     ...danglingEdges(policy, byId),
@@ -58,13 +58,13 @@ export function validatePolicy(
     ...unresolvedApprovers(policy),
     ...duplicateGates(policy),
     ...pathRules(policy, byId, opts),
-  ]
-  return dedupe(issues)
+  ];
+  return dedupe(issues);
 }
 
 /** No error-severity issue: safe to activate. */
 export function isActivatable(issues: PolicyIssue[]): boolean {
-  return issues.every((i) => i.severity !== "error")
+  return issues.every((i) => i.severity !== "error");
 }
 
 // ---------------------------------------------------------------------------
@@ -72,9 +72,9 @@ export function isActivatable(issues: PolicyIssue[]): boolean {
 // ---------------------------------------------------------------------------
 
 function duplicateStepIds(policy: ApprovalPolicy): PolicyIssue[] {
-  const seen = new Map<string, number>()
+  const seen = new Map<string, number>();
   for (const step of policy.steps) {
-    seen.set(step.id, (seen.get(step.id) ?? 0) + 1)
+    seen.set(step.id, (seen.get(step.id) ?? 0) + 1);
   }
   return [...seen.entries()]
     .filter(([, count]) => count > 1)
@@ -83,14 +83,11 @@ function duplicateStepIds(policy: ApprovalPolicy): PolicyIssue[] {
       code: "duplicate-step-id",
       message: `Step id "${id}" is used more than once.`,
       stepIds: [id],
-    }))
+    }));
 }
 
-function danglingEdges(
-  policy: ApprovalPolicy,
-  byId: Map<string, PolicyStep>,
-): PolicyIssue[] {
-  const issues: PolicyIssue[] = []
+function danglingEdges(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
+  const issues: PolicyIssue[] = [];
   for (const step of policy.steps) {
     for (const nextId of step.next) {
       if (!byId.has(nextId)) {
@@ -99,17 +96,14 @@ function danglingEdges(
           code: "dangling-edge",
           message: `"${step.label}" routes to a step that does not exist ("${nextId}").`,
           stepIds: [step.id],
-        })
+        });
       }
     }
   }
-  return issues
+  return issues;
 }
 
-function rootsValid(
-  policy: ApprovalPolicy,
-  byId: Map<string, PolicyStep>,
-): PolicyIssue[] {
+function rootsValid(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
   if (policy.roots.length === 0) {
     return [
       {
@@ -118,7 +112,7 @@ function rootsValid(
         message: "The policy has no entry point.",
         stepIds: [],
       },
-    ]
+    ];
   }
   return policy.roots
     .filter((id) => !byId.has(id))
@@ -127,42 +121,35 @@ function rootsValid(
       code: "unknown-root",
       message: `Entry point "${id}" is not a step in the policy.`,
       stepIds: [id],
-    }))
+    }));
 }
 
-function cycleFree(
-  policy: ApprovalPolicy,
-  byId: Map<string, PolicyStep>,
-): PolicyIssue[] {
-  const indegree = new Map<string, number>()
-  for (const step of policy.steps) indegree.set(step.id, 0)
+function cycleFree(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
+  const indegree = new Map<string, number>();
+  for (const step of policy.steps) indegree.set(step.id, 0);
   for (const step of policy.steps) {
     for (const nextId of step.next) {
       if (byId.has(nextId)) {
-        indegree.set(nextId, (indegree.get(nextId) ?? 0) + 1)
+        indegree.set(nextId, (indegree.get(nextId) ?? 0) + 1);
       }
     }
   }
-  const queue = [...indegree.entries()]
-    .filter(([, d]) => d === 0)
-    .map(([id]) => id)
-  let processed = 0
+  const queue = [...indegree.entries()].filter(([, d]) => d === 0).map(([id]) => id);
+  let processed = 0;
   while (queue.length > 0) {
-    const id = queue.shift() as string
-    processed += 1
-    const step = byId.get(id)
-    if (!step) continue
+    const id = queue.shift() as string;
+    processed += 1;
+    const step = byId.get(id);
+    if (!step) continue;
     for (const nextId of step.next) {
-      if (!byId.has(nextId)) continue
-      const d = (indegree.get(nextId) ?? 0) - 1
-      indegree.set(nextId, d)
-      if (d === 0) queue.push(nextId)
+      if (!byId.has(nextId)) continue;
+      const d = (indegree.get(nextId) ?? 0) - 1;
+      indegree.set(nextId, d);
+      if (d === 0) queue.push(nextId);
     }
   }
-  if (processed >= byId.size) return []
-  const stuck = [...indegree.entries()]
-    .filter(([, d]) => d > 0)
-    .map(([id]) => id)
+  if (processed >= byId.size) return [];
+  const stuck = [...indegree.entries()].filter(([, d]) => d > 0).map(([id]) => id);
   return [
     {
       severity: "error",
@@ -170,33 +157,27 @@ function cycleFree(
       message: "Approvals must flow one way: the policy contains a cycle.",
       stepIds: stuck,
     },
-  ]
+  ];
 }
 
-function reachableFromRoots(
-  policy: ApprovalPolicy,
-  byId: Map<string, PolicyStep>,
-): Set<string> {
-  const reached = new Set<string>()
-  const queue = policy.roots.filter((id) => byId.has(id))
+function reachableFromRoots(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): Set<string> {
+  const reached = new Set<string>();
+  const queue = policy.roots.filter((id) => byId.has(id));
   while (queue.length > 0) {
-    const id = queue.shift() as string
-    if (reached.has(id)) continue
-    reached.add(id)
-    const step = byId.get(id)
-    if (!step) continue
+    const id = queue.shift() as string;
+    if (reached.has(id)) continue;
+    reached.add(id);
+    const step = byId.get(id);
+    if (!step) continue;
     for (const nextId of step.next) {
-      if (byId.has(nextId) && !reached.has(nextId)) queue.push(nextId)
+      if (byId.has(nextId) && !reached.has(nextId)) queue.push(nextId);
     }
   }
-  return reached
+  return reached;
 }
 
-function reachability(
-  policy: ApprovalPolicy,
-  byId: Map<string, PolicyStep>,
-): PolicyIssue[] {
-  const reached = reachableFromRoots(policy, byId)
+function reachability(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
+  const reached = reachableFromRoots(policy, byId);
   return policy.steps
     .filter((step) => !reached.has(step.id))
     .map((step) => ({
@@ -204,14 +185,11 @@ function reachability(
       code: "unreachable-step",
       message: `"${step.label}" can never be reached from an entry point.`,
       stepIds: [step.id],
-    }))
+    }));
 }
 
-function terminals(
-  policy: ApprovalPolicy,
-  byId: Map<string, PolicyStep>,
-): PolicyIssue[] {
-  const terminalSteps = policy.steps.filter(isTerminalStep)
+function terminals(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyIssue[] {
+  const terminalSteps = policy.steps.filter(isTerminalStep);
   if (terminalSteps.length === 0) {
     return [
       {
@@ -220,9 +198,9 @@ function terminals(
         message: "The policy has no terminal step, so no request can ever finish.",
         stepIds: [],
       },
-    ]
+    ];
   }
-  const approved = terminalSteps.filter((t) => t.outcome === "approved")
+  const approved = terminalSteps.filter((t) => t.outcome === "approved");
   if (approved.length === 0) {
     return [
       {
@@ -231,9 +209,9 @@ function terminals(
         message: "No terminal step has the approved outcome: nothing can ever pass.",
         stepIds: terminalSteps.map((t) => t.id),
       },
-    ]
+    ];
   }
-  const reached = reachableFromRoots(policy, byId)
+  const reached = reachableFromRoots(policy, byId);
   if (!approved.some((t) => reached.has(t.id))) {
     return [
       {
@@ -242,15 +220,15 @@ function terminals(
         message: "The approved outcome can never be reached from an entry point.",
         stepIds: approved.map((t) => t.id),
       },
-    ]
+    ];
   }
-  return []
+  return [];
 }
 
 function quorumValid(policy: ApprovalPolicy): PolicyIssue[] {
-  const issues: PolicyIssue[] = []
+  const issues: PolicyIssue[] = [];
   for (const step of policy.steps) {
-    if (!isApprovalStep(step)) continue
+    if (!isApprovalStep(step)) continue;
     if (step.mode === "quorum") {
       if (step.quorum === undefined || step.quorum > step.approvers.length) {
         issues.push({
@@ -258,7 +236,7 @@ function quorumValid(policy: ApprovalPolicy): PolicyIssue[] {
           code: "quorum-invalid",
           message: `"${step.label}" asks for a quorum of ${step.quorum ?? "?"} but has ${step.approvers.length} approver${step.approvers.length === 1 ? "" : "s"}.`,
           stepIds: [step.id],
-        })
+        });
       }
     } else if (step.quorum !== undefined) {
       issues.push({
@@ -266,10 +244,10 @@ function quorumValid(policy: ApprovalPolicy): PolicyIssue[] {
         code: "quorum-ignored",
         message: `"${step.label}" sets a quorum but its mode is "${step.mode}", so the quorum is ignored.`,
         stepIds: [step.id],
-      })
+      });
     }
   }
-  return issues
+  return issues;
 }
 
 // ---------------------------------------------------------------------------
@@ -277,9 +255,9 @@ function quorumValid(policy: ApprovalPolicy): PolicyIssue[] {
 // ---------------------------------------------------------------------------
 
 function unresolvedApprovers(policy: ApprovalPolicy): PolicyIssue[] {
-  const issues: PolicyIssue[] = []
+  const issues: PolicyIssue[] = [];
   for (const step of policy.steps) {
-    if (!isApprovalStep(step)) continue
+    if (!isApprovalStep(step)) continue;
     for (const approver of step.approvers) {
       if (approver.name === null) {
         issues.push({
@@ -287,70 +265,67 @@ function unresolvedApprovers(policy: ApprovalPolicy): PolicyIssue[] {
           code: "unresolved-approver",
           message: `"${step.label}" has an unassigned ${approver.title} seat.`,
           stepIds: [step.id],
-        })
+        });
       }
     }
   }
-  return issues
+  return issues;
 }
 
 function duplicateGates(policy: ApprovalPolicy): PolicyIssue[] {
-  const seen = new Map<string, ApprovalStep>()
-  const issues: PolicyIssue[] = []
+  const seen = new Map<string, ApprovalStep>();
+  const issues: PolicyIssue[] = [];
   for (const step of policy.steps) {
-    if (!isApprovalStep(step)) continue
+    if (!isApprovalStep(step)) continue;
     const key = [
       step.approvers
         .map((a) => `${a.name ?? "?"}:${a.title}`)
         .sort()
         .join("|"),
       describeCondition(step.when),
-    ].join("::")
-    const prior = seen.get(key)
+    ].join("::");
+    const prior = seen.get(key);
     if (prior) {
       issues.push({
         severity: "warning",
         code: "duplicate-gate",
         message: `"${prior.label}" and "${step.label}" ask the same approvers under the same condition.`,
         stepIds: [prior.id, step.id],
-      })
+      });
     } else {
-      seen.set(key, step)
+      seen.set(key, step);
     }
   }
-  return issues
+  return issues;
 }
 
 // ---------------------------------------------------------------------------
 // Path rules (walk every root-to-approved path)
 // ---------------------------------------------------------------------------
 
-const MAX_PATHS = 2000
+const MAX_PATHS = 2000;
 
-function pathsToApproved(
-  policy: ApprovalPolicy,
-  byId: Map<string, PolicyStep>,
-): PolicyStep[][] {
-  const paths: PolicyStep[][] = []
+function pathsToApproved(policy: ApprovalPolicy, byId: Map<string, PolicyStep>): PolicyStep[][] {
+  const paths: PolicyStep[][] = [];
   const walk = (step: PolicyStep, path: PolicyStep[], seen: Set<string>) => {
-    if (paths.length >= MAX_PATHS || seen.has(step.id)) return
-    const nextPath = [...path, step]
+    if (paths.length >= MAX_PATHS || seen.has(step.id)) return;
+    const nextPath = [...path, step];
     if (isTerminalStep(step)) {
-      if (step.outcome === "approved") paths.push(nextPath)
-      return
+      if (step.outcome === "approved") paths.push(nextPath);
+      return;
     }
-    const nextSeen = new Set(seen)
-    nextSeen.add(step.id)
+    const nextSeen = new Set(seen);
+    nextSeen.add(step.id);
     for (const nextId of step.next) {
-      const next = byId.get(nextId)
-      if (next) walk(next, nextPath, nextSeen)
+      const next = byId.get(nextId);
+      if (next) walk(next, nextPath, nextSeen);
     }
-  }
+  };
   for (const rootId of policy.roots) {
-    const root = byId.get(rootId)
-    if (root) walk(root, [], new Set())
+    const root = byId.get(rootId);
+    if (root) walk(root, [], new Set());
   }
-  return paths
+  return paths;
 }
 
 /**
@@ -359,25 +334,25 @@ function pathsToApproved(
  * floor of 25,000; an unguarded path has a floor of 0.
  */
 function amountFloor(path: PolicyStep[], amountField: string): number {
-  let floor = 0
+  let floor = 0;
   for (const step of path) {
     for (const l of collectLeaves(step.when)) {
-      if (l.field !== amountField || typeof l.value !== "number") continue
-      if (l.op === ">" || l.op === ">=") floor = Math.max(floor, l.value)
+      if (l.field !== amountField || typeof l.value !== "number") continue;
+      if (l.op === ">" || l.op === ">=") floor = Math.max(floor, l.value);
     }
   }
-  return floor
+  return floor;
 }
 
 function pathRules(
   policy: ApprovalPolicy,
   byId: Map<string, PolicyStep>,
-  opts: Required<ValidateOptions>,
+  opts: Required<ValidateOptions>
 ): PolicyIssue[] {
-  const issues: PolicyIssue[] = []
+  const issues: PolicyIssue[] = [];
   for (const path of pathsToApproved(policy, byId)) {
-    const gates = path.filter(isApprovalStep)
-    const terminal = path[path.length - 1]
+    const gates = path.filter(isApprovalStep);
+    const terminal = path[path.length - 1];
 
     if (gates.length === 0) {
       issues.push({
@@ -385,25 +360,25 @@ function pathRules(
         code: "no-approval-before-terminal",
         message: `A request can reach "${terminal.label}" without any human approval.`,
         stepIds: [terminal.id],
-      })
+      });
     }
 
-    const floor = amountFloor(path, opts.amountField)
+    const floor = amountFloor(path, opts.amountField);
     if (floor >= opts.materiality && gates.length < 2) {
       issues.push({
         severity: "warning",
         code: "single-approver-high-value",
         message: `Requests above ${floor.toLocaleString("en-US")} can pass with ${gates.length === 0 ? "no approval gate" : "a single approval gate"}.`,
         stepIds: gates.map((g) => g.id),
-      })
+      });
     }
 
-    const gatesByName = new Map<string, ApprovalStep[]>()
+    const gatesByName = new Map<string, ApprovalStep[]>();
     for (const gate of gates) {
       for (const name of approverNames(gate)) {
-        const list = gatesByName.get(name) ?? []
-        if (!list.includes(gate)) list.push(gate)
-        gatesByName.set(name, list)
+        const list = gatesByName.get(name) ?? [];
+        if (!list.includes(gate)) list.push(gate);
+        gatesByName.set(name, list);
       }
     }
     for (const [name, dupGates] of gatesByName) {
@@ -413,23 +388,23 @@ function pathRules(
           code: "segregation-of-duties",
           message: `${name} approves twice on the same path (${dupGates.map((g) => `"${g.label}"`).join(", ")}).`,
           stepIds: dupGates.map((g) => g.id),
-        })
+        });
       }
     }
   }
-  return issues
+  return issues;
 }
 
 // ---------------------------------------------------------------------------
 
 function dedupe(issues: PolicyIssue[]): PolicyIssue[] {
-  const seen = new Set<string>()
-  const out: PolicyIssue[] = []
+  const seen = new Set<string>();
+  const out: PolicyIssue[] = [];
   for (const issue of issues) {
-    const key = `${issue.code}::${[...issue.stepIds].sort().join(",")}`
-    if (seen.has(key)) continue
-    seen.add(key)
-    out.push(issue)
+    const key = `${issue.code}::${[...issue.stepIds].sort().join(",")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(issue);
   }
-  return out
+  return out;
 }

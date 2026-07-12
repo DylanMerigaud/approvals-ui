@@ -1,30 +1,24 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
-import { ArrowDown, ArrowRight, Check, Copy, Moon, RotateCcw, Sparkles, Sun } from "lucide-react"
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDown, ArrowRight, Check, Copy, Moon, RotateCcw, Sparkles, Sun } from "lucide-react";
 
-import { NlEditPanel } from "@/components/approvals-ui/nl-edit-panel"
-import { ValidationPanel } from "@/components/approvals-ui/validation-panel"
-import { WorkflowCanvas } from "@/components/approvals-ui/workflow-canvas"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { demoInstructions, demoProposer } from "@/lib/approvals-ui/demo-proposer"
-import { hasChanges } from "@/lib/approvals-ui/diff"
-import type { EditProposal } from "@/lib/approvals-ui/edit-ops"
-import { examplePolicy } from "@/lib/approvals-ui/example-policy"
-import { isActivatable, validatePolicy } from "@/lib/approvals-ui/validate"
+import { NlEditPanel } from "@/components/approvals-ui/nl-edit-panel";
+import { ValidationPanel } from "@/components/approvals-ui/validation-panel";
+import { WorkflowCanvas } from "@/components/approvals-ui/workflow-canvas";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { demoInstructions, demoProposer } from "@/lib/approvals-ui/demo-proposer";
+import { hasChanges } from "@/lib/approvals-ui/diff";
+import type { EditProposal } from "@/lib/approvals-ui/edit-ops";
+import { examplePolicy } from "@/lib/approvals-ui/example-policy";
+import { isActivatable, validatePolicy } from "@/lib/approvals-ui/validate";
 
-const REGISTRY_URL = "https://approvals-ui.vercel.app"
-const GITHUB_URL = "https://github.com/DylanMerigaud/approvals-ui"
+const REGISTRY_URL = "https://approvals-ui.vercel.app";
+const GITHUB_URL = "https://github.com/DylanMerigaud/approvals-ui";
 
 const AGENT_PROMPT = `Add the approvals-ui approval-workflow screen to this project.
 
@@ -53,7 +47,7 @@ const AGENT_PROMPT = `Add the approvals-ui approval-workflow screen to this proj
 
 5. For plain-language editing, wire NlEditPanel with the bundled demoProposer first. To use
    a real model, implement a Proposer that emits one EditOp (validate with editOpSchema) and
-   apply it with proposeEdits. Keep the Apply/Discard review step: nothing lands without it.`
+   apply it with proposeEdits. Keep the Apply/Discard review step: nothing lands without it.`;
 
 const ITEMS = [
   {
@@ -85,78 +79,74 @@ const ITEMS = [
     summary:
       "Headless core only: Zod policy schema, validation rules, step diff, deterministic edit ops.",
   },
-] as const
+] as const;
 
 function GithubIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 16 16" fill="currentColor" className={className} aria-hidden="true">
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
     </svg>
-  )
+  );
 }
 
 function CopyButton({ text, className }: { text: string; className?: string }) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
   return (
     <Button
       variant="ghost"
       size="icon"
       className={className}
       onClick={async () => {
-        await navigator.clipboard.writeText(text)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1500)
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
       }}
       aria-label="Copy to clipboard"
     >
       {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
     </Button>
-  )
+  );
 }
 
 function InstallCommand({ item, className }: { item: string; className?: string }) {
-  const command = `npx shadcn@latest add ${REGISTRY_URL}/r/${item}.json`
+  const command = `npx shadcn@latest add ${REGISTRY_URL}/r/${item}.json`;
   return (
     <div
-      className={`flex items-center gap-1 rounded-lg border bg-muted/40 pl-3 pr-1 ${className ?? ""}`}
+      className={`bg-muted/40 flex items-center gap-1 rounded-lg border pr-1 pl-3 ${className ?? ""}`}
     >
-      <code className="min-w-0 flex-1 truncate py-2 font-mono text-[11px] text-muted-foreground">
+      <code className="text-muted-foreground min-w-0 flex-1 truncate py-2 font-mono text-[11px]">
         {command}
       </code>
       <CopyButton text={command} className="size-7 shrink-0" />
     </div>
-  )
+  );
 }
 
 function AgentPromptButton() {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
   return (
     <Button
       variant="outline"
       size="sm"
       className="shrink-0"
       onClick={async () => {
-        await navigator.clipboard.writeText(AGENT_PROMPT)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1800)
+        await navigator.clipboard.writeText(AGENT_PROMPT);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
       }}
     >
-      {copied ? (
-        <Check className="size-3.5 text-emerald-500" />
-      ) : (
-        <Sparkles className="size-3.5" />
-      )}
+      {copied ? <Check className="size-3.5 text-emerald-500" /> : <Sparkles className="size-3.5" />}
       {copied ? "Copied" : "Copy agent prompt"}
     </Button>
-  )
+  );
 }
 
 function ThemeToggle() {
-  const [dark, setDark] = useState<boolean | null>(null)
+  const [dark, setDark] = useState<boolean | null>(null);
   useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"))
-  }, [])
-  if (dark === null) return <Button variant="ghost" size="icon" aria-hidden className="size-8" />
+    setDark(document.documentElement.classList.contains("dark"));
+  }, []);
+  if (dark === null) return <Button variant="ghost" size="icon" aria-hidden className="size-8" />;
   return (
     <Button
       variant="ghost"
@@ -164,31 +154,31 @@ function ThemeToggle() {
       className="size-8"
       aria-label="Toggle theme"
       onClick={() => {
-        const next = !dark
-        document.documentElement.classList.toggle("dark", next)
+        const next = !dark;
+        document.documentElement.classList.toggle("dark", next);
         try {
-          localStorage.setItem("theme", next ? "dark" : "light")
+          localStorage.setItem("theme", next ? "dark" : "light");
         } catch {}
-        setDark(next)
+        setDark(next);
       }}
     >
       {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </Button>
-  )
+  );
 }
 
 export default function Home() {
-  const [policy, setPolicy] = useState(examplePolicy)
-  const [proposal, setProposal] = useState<EditProposal | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [focus, setFocus] = useState<{ stepId: string } | null>(null)
-  const [tab, setTab] = useState("edit")
-  const [direction, setDirection] = useState<"LR" | "TB">("LR")
+  const [policy, setPolicy] = useState(examplePolicy);
+  const [proposal, setProposal] = useState<EditProposal | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [focus, setFocus] = useState<{ stepId: string } | null>(null);
+  const [tab, setTab] = useState("edit");
+  const [direction, setDirection] = useState<"LR" | "TB">("LR");
 
-  const previewing = proposal !== null && hasChanges(proposal.changes)
-  const displayed = previewing ? proposal.proposed : policy
-  const issues = useMemo(() => validatePolicy(displayed), [displayed])
-  const blockApply = previewing && !isActivatable(issues)
+  const previewing = proposal !== null && hasChanges(proposal.changes);
+  const displayed = previewing ? proposal.proposed : policy;
+  const issues = useMemo(() => validatePolicy(displayed), [displayed]);
+  const blockApply = previewing && !isActivatable(issues);
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 sm:px-6">
@@ -214,14 +204,14 @@ export default function Home() {
       </header>
 
       <section className="py-10 sm:py-14">
-        <h1 className="max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           The approval workflow screen, as components you own.
         </h1>
-        <p className="mt-4 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-          React Flow gives you the canvas. This registry adds the approval semantics: quorum
-          gates, amount thresholds, unassigned seats, a policy lint that knows what segregation
-          of duties means, and plain-language editing where a human reviews the diff before
-          anything lands. Install with one command, the code lands in your project, it is yours.
+        <p className="text-muted-foreground mt-4 max-w-2xl text-sm leading-relaxed text-pretty sm:text-base">
+          React Flow gives you the canvas. This registry adds the approval semantics: quorum gates,
+          amount thresholds, unassigned seats, a policy lint that knows what segregation of duties
+          means, and plain-language editing where a human reviews the diff before anything lands.
+          Install with one command, the code lands in your project, it is yours.
         </p>
         <div className="mt-6 flex max-w-2xl flex-col gap-2 sm:flex-row sm:items-center">
           <InstallCommand item="workflow-canvas" className="min-w-0 flex-1" />
@@ -261,9 +251,9 @@ export default function Home() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setPolicy(examplePolicy)
-                  setProposal(null)
-                  setSelectedId(null)
+                  setPolicy(examplePolicy);
+                  setProposal(null);
+                  setSelectedId(null);
                 }}
               >
                 <RotateCcw className="size-3.5" />
@@ -313,9 +303,9 @@ export default function Home() {
                   blockApplyReason="The proposed policy has validation errors."
                   suggestions={[...demoInstructions]}
                 />
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  This demo uses the bundled deterministic parser, no model and no API key.
-                  In production you swap it for an LLM that emits EditOp JSON (validated by
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  This demo uses the bundled deterministic parser, no model and no API key. In
+                  production you swap it for an LLM that emits EditOp JSON (validated by
                   editOpSchema). The review-then-apply gate stays exactly the same.
                 </p>
               </TabsContent>
@@ -323,8 +313,8 @@ export default function Home() {
                 <ValidationPanel
                   issues={issues}
                   onFocusStep={(stepId) => {
-                    setSelectedId(stepId)
-                    setFocus({ stepId })
+                    setSelectedId(stepId);
+                    setFocus({ stepId });
                   }}
                 />
               </TabsContent>
@@ -332,9 +322,9 @@ export default function Home() {
                 <div className="relative">
                   <CopyButton
                     text={JSON.stringify(displayed, null, 2)}
-                    className="absolute right-1 top-1 z-10 size-7"
+                    className="absolute top-1 right-1 z-10 size-7"
                   />
-                  <ScrollArea className="h-[480px] rounded-lg border bg-muted/30">
+                  <ScrollArea className="bg-muted/30 h-[480px] rounded-lg border">
                     <pre className="p-3 font-mono text-[11px] leading-relaxed">
                       {JSON.stringify(displayed, null, 2)}
                     </pre>
@@ -348,10 +338,10 @@ export default function Home() {
 
       <section className="py-14">
         <h2 className="text-xl font-semibold tracking-tight">Install</h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Each item is copied into your codebase by the shadcn CLI, with its npm dependencies
-          and its registry dependencies resolved. Start with workflow-canvas, it pulls
-          everything it needs.
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm">
+          Each item is copied into your codebase by the shadcn CLI, with its npm dependencies and
+          its registry dependencies resolved. Start with workflow-canvas, it pulls everything it
+          needs.
         </p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {ITEMS.map((item) => (
@@ -371,13 +361,13 @@ export default function Home() {
       </section>
 
       <footer className="border-t py-8">
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-muted-foreground text-xs leading-relaxed">
           Built by{" "}
           <a
             href="https://www.linkedin.com/in/dylanmerigaud"
             target="_blank"
             rel="noreferrer"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
+            className="text-foreground font-medium underline-offset-4 hover:underline"
           >
             Dylan Mérigaud
           </a>
@@ -386,7 +376,7 @@ export default function Home() {
             href="https://ledgerloop-eta.vercel.app"
             target="_blank"
             rel="noreferrer"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
+            className="text-foreground font-medium underline-offset-4 hover:underline"
           >
             ledgerloop
           </a>
@@ -395,7 +385,7 @@ export default function Home() {
             href="https://www.npmjs.com/package/react-flow-auto-layout"
             target="_blank"
             rel="noreferrer"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
+            className="text-foreground font-medium underline-offset-4 hover:underline"
           >
             react-flow-auto-layout
           </a>{" "}
@@ -403,5 +393,5 @@ export default function Home() {
         </p>
       </footer>
     </div>
-  )
+  );
 }

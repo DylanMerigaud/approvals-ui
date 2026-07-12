@@ -87,14 +87,14 @@ plain language.
 
 ## What you get
 
-| Item | What it is |
-| --- | --- |
-| `workflow-canvas` | Policy JSON in, laid-out graph out. Auto-layout on real node sizes via [react-flow-auto-layout](https://www.npmjs.com/package/react-flow-auto-layout), diff and status overlays, click-to-select, pan-to-focus. |
-| `approval-node` | The gate card: approvers, unassigned seats, quorum badge, condition pill, SLA, diff and issue rings. |
-| `terminal-node` | Approved and rejected outcome pills. |
-| `validation-panel` | The policy lint, rendered. Click an issue to focus the step on the canvas. |
-| `nl-edit-panel` | Plain-language edits behind a human gate: propose, review the diff, apply or discard. |
-| `approvals-core` | The headless core alone: Zod policy schema, validation, step diff, deterministic edit ops. No React required. |
+| Item               | What it is                                                                                                                                                                                                      |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workflow-canvas`  | Policy JSON in, laid-out graph out. Auto-layout on real node sizes via [react-flow-auto-layout](https://www.npmjs.com/package/react-flow-auto-layout), diff and status overlays, click-to-select, pan-to-focus. |
+| `approval-node`    | The gate card: approvers, unassigned seats, quorum badge, condition pill, SLA, diff and issue rings.                                                                                                            |
+| `terminal-node`    | Approved and rejected outcome pills.                                                                                                                                                                            |
+| `validation-panel` | The policy lint, rendered. Click an issue to focus the step on the canvas.                                                                                                                                      |
+| `nl-edit-panel`    | Plain-language edits behind a human gate: propose, review the diff, apply or discard.                                                                                                                           |
+| `approvals-core`   | The headless core alone: Zod policy schema, validation, step diff, deterministic edit ops. No React required.                                                                                                   |
 
 `workflow-canvas` pulls the nodes and the core with it. Add the panels if you want the full screen.
 
@@ -106,7 +106,7 @@ request is skipped. Conditions live on steps, not edges, so the graph stays legi
 diff stays small.
 
 ```ts
-import type { ApprovalPolicy } from "@/lib/approvals-ui/policy"
+import type { ApprovalPolicy } from "@/lib/approvals-ui/policy";
 
 const policy: ApprovalPolicy = {
   name: "Procurement approvals",
@@ -144,17 +144,17 @@ const policy: ApprovalPolicy = {
       next: [],
     },
   ],
-}
+};
 ```
 
 Render it:
 
 ```tsx
-import { WorkflowCanvas } from "@/components/approvals-ui/workflow-canvas"
+import { WorkflowCanvas } from "@/components/approvals-ui/workflow-canvas";
 
 <div className="h-[600px]">
   <WorkflowCanvas policy={policy} issues={validatePolicy(policy)} />
-</div>
+</div>;
 ```
 
 ## The policy lint
@@ -173,10 +173,10 @@ threshold with fewer than two gates) · `segregation-of-duties` (the same person
 on one path)
 
 ```ts
-import { validatePolicy, isActivatable } from "@/lib/approvals-ui/validate"
+import { validatePolicy, isActivatable } from "@/lib/approvals-ui/validate";
 
-const issues = validatePolicy(policy, { materiality: 25_000, amountField: "amount" })
-if (isActivatable(issues)) activate(policy)
+const issues = validatePolicy(policy, { materiality: 25_000, amountField: "amount" });
+if (isActivatable(issues)) activate(policy);
 ```
 
 ## Editing: ops, not regeneration
@@ -191,17 +191,17 @@ The playground ships with a deterministic demo parser, so the edit panel works w
 and no API key. In production, swap it for an LLM:
 
 ```ts
-import { generateObject } from "ai"
-import { editOpSchema, proposeEdits, type Proposer } from "@/lib/approvals-ui/edit-ops"
+import { generateObject } from "ai";
+import { editOpSchema, proposeEdits, type Proposer } from "@/lib/approvals-ui/edit-ops";
 
 const llmProposer: Proposer = async (instruction, policy) => {
   const { object: op } = await generateObject({
     model: "anthropic/claude-sonnet-5",
     schema: editOpSchema,
     prompt: `Policy: ${JSON.stringify(policy)}\nInstruction: ${instruction}\nEmit one EditOp.`,
-  })
-  return proposeEdits(policy, [op])
-}
+  });
+  return proposeEdits(policy, [op]);
+};
 ```
 
 The `NlEditPanel` UI does not change. The human gate does not change either: the proposal is

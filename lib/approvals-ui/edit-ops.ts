@@ -1,5 +1,5 @@
-import { z } from "zod"
-import { diffPolicies, type StepChange } from "./diff"
+import { z } from "zod";
+import { diffPolicies, type StepChange } from "./diff";
 import {
   approvalModes,
   approverSchema,
@@ -8,7 +8,7 @@ import {
   type ApprovalPolicy,
   type ApprovalStep,
   type Condition,
-} from "./policy"
+} from "./policy";
 
 /**
  * Edit ops: the safe write surface for a policy.
@@ -80,8 +80,8 @@ export const editOpSchema = z.discriminatedUnion("op", [
     question: z.string(),
     options: z.array(z.string()).optional(),
   }),
-])
-export type EditOp = z.infer<typeof editOpSchema>
+]);
+export type EditOp = z.infer<typeof editOpSchema>;
 
 export class EditError extends Error {}
 
@@ -91,157 +91,159 @@ export class EditError extends Error {}
  * to anything else that returns a proposed policy plus its diff.
  */
 export type EditProposal = {
-  proposed: ApprovalPolicy
-  changes: StepChange[]
-  reason?: string
-  clarify?: { question: string; options?: string[] }
-}
+  proposed: ApprovalPolicy;
+  changes: StepChange[];
+  reason?: string;
+  clarify?: { question: string; options?: string[] };
+};
 
-export type Proposer = (
-  instruction: string,
-  policy: ApprovalPolicy,
-) => Promise<EditProposal>
+export type Proposer = (instruction: string, policy: ApprovalPolicy) => Promise<EditProposal>;
 
 // ---------------------------------------------------------------------------
 
 function mustGetApproval(policy: ApprovalPolicy, stepId: string): ApprovalStep {
-  const step = policy.steps.find((s) => s.id === stepId)
-  if (!step) throw new EditError(`Unknown step "${stepId}".`)
+  const step = policy.steps.find((s) => s.id === stepId);
+  if (!step) throw new EditError(`Unknown step "${stepId}".`);
   if (!isApprovalStep(step)) {
-    throw new EditError(`"${step.label}" is a terminal step, not an approval gate.`)
+    throw new EditError(`"${step.label}" is a terminal step, not an approval gate.`);
   }
-  return step
+  return step;
 }
 
 function setThreshold(
   when: Condition,
   field: string,
   comparator: ">" | ">=",
-  value: number,
+  value: number
 ): { condition: Condition; replaced: boolean } {
   switch (when.kind) {
     case "always":
-      return { condition: { kind: "leaf", field, op: comparator, value }, replaced: true }
+      return { condition: { kind: "leaf", field, op: comparator, value }, replaced: true };
     case "leaf":
       if (when.field === field) {
-        return { condition: { kind: "leaf", field, op: comparator, value }, replaced: true }
+        return { condition: { kind: "leaf", field, op: comparator, value }, replaced: true };
       }
-      return { condition: when, replaced: false }
+      return { condition: when, replaced: false };
     case "all":
     case "any": {
-      let replaced = false
+      let replaced = false;
       const conditions = when.conditions.map((c) => {
-        const result = setThreshold(c, field, comparator, value)
-        replaced = replaced || result.replaced
-        return result.condition
-      })
-      return { condition: { kind: when.kind, conditions }, replaced }
+        const result = setThreshold(c, field, comparator, value);
+        replaced = replaced || result.replaced;
+        return result.condition;
+      });
+      return { condition: { kind: when.kind, conditions }, replaced };
     }
   }
 }
 
 export function applyEditOp(policy: ApprovalPolicy, op: EditOp): ApprovalPolicy {
-  const next = structuredClone(policy)
+  const next = structuredClone(policy);
   switch (op.op) {
     case "none":
     case "clarify":
-      return next
+      return next;
 
     case "set-condition": {
-      const step = next.steps.find((s) => s.id === op.stepId)
-      if (!step) throw new EditError(`Unknown step "${op.stepId}".`)
-      step.when = op.when
-      return next
+      const step = next.steps.find((s) => s.id === op.stepId);
+      if (!step) throw new EditError(`Unknown step "${op.stepId}".`);
+      step.when = op.when;
+      return next;
     }
 
     case "set-threshold": {
-      const step = next.steps.find((s) => s.id === op.stepId)
-      if (!step) throw new EditError(`Unknown step "${op.stepId}".`)
-      const field = op.field ?? "amount"
-      const comparator = op.comparator ?? ">"
-      const result = setThreshold(step.when, field, comparator, op.value)
+      const step = next.steps.find((s) => s.id === op.stepId);
+      if (!step) throw new EditError(`Unknown step "${op.stepId}".`);
+      const field = op.field ?? "amount";
+      const comparator = op.comparator ?? ">";
+      const result = setThreshold(step.when, field, comparator, op.value);
       step.when = result.replaced
         ? result.condition
         : {
             kind: "all",
             conditions: [step.when, { kind: "leaf", field, op: comparator, value: op.value }],
-          }
-      return next
+          };
+      return next;
     }
 
     case "add-approver": {
-      const step = mustGetApproval(next, op.stepId)
-      const exists = step.approvers.some(
-        (a) => a.name !== null && a.name === op.approver.name,
-      )
-      if (exists) throw new EditError(`${op.approver.name} is already an approver on "${step.label}".`)
-      step.approvers.push(op.approver)
-      return next
+      const step = mustGetApproval(next, op.stepId);
+      const exists = step.approvers.some((a) => a.name !== null && a.name === op.approver.name);
+      if (exists)
+        throw new EditError(`${op.approver.name} is already an approver on "${step.label}".`);
+      step.approvers.push(op.approver);
+      return next;
     }
 
     case "remove-approver": {
-      const step = mustGetApproval(next, op.stepId)
-      const remaining = step.approvers.filter((a) => a.name !== op.name)
+      const step = mustGetApproval(next, op.stepId);
+      const remaining = step.approvers.filter((a) => a.name !== op.name);
       if (remaining.length === step.approvers.length) {
-        throw new EditError(`${op.name} is not an approver on "${step.label}".`)
+        throw new EditError(`${op.name} is not an approver on "${step.label}".`);
       }
       if (remaining.length === 0) {
-        throw new EditError(`"${step.label}" needs at least one approver. Remove the step instead.`)
+        throw new EditError(
+          `"${step.label}" needs at least one approver. Remove the step instead.`
+        );
       }
-      step.approvers = remaining
+      step.approvers = remaining;
       if (step.mode === "quorum" && step.quorum !== undefined && step.quorum > remaining.length) {
-        step.quorum = remaining.length
+        step.quorum = remaining.length;
       }
-      return next
+      return next;
     }
 
     case "set-approvers": {
-      const step = mustGetApproval(next, op.stepId)
-      step.approvers = op.approvers
-      if (step.mode === "quorum" && step.quorum !== undefined && step.quorum > op.approvers.length) {
-        step.quorum = op.approvers.length
+      const step = mustGetApproval(next, op.stepId);
+      step.approvers = op.approvers;
+      if (
+        step.mode === "quorum" &&
+        step.quorum !== undefined &&
+        step.quorum > op.approvers.length
+      ) {
+        step.quorum = op.approvers.length;
       }
-      return next
+      return next;
     }
 
     case "set-mode": {
-      const step = mustGetApproval(next, op.stepId)
-      step.mode = op.mode
-      step.quorum = op.mode === "quorum" ? (op.quorum ?? step.quorum) : undefined
-      return next
+      const step = mustGetApproval(next, op.stepId);
+      step.mode = op.mode;
+      step.quorum = op.mode === "quorum" ? (op.quorum ?? step.quorum) : undefined;
+      return next;
     }
 
     case "rename-step": {
-      const step = next.steps.find((s) => s.id === op.stepId)
-      if (!step) throw new EditError(`Unknown step "${op.stepId}".`)
-      step.label = op.label
-      return next
+      const step = next.steps.find((s) => s.id === op.stepId);
+      if (!step) throw new EditError(`Unknown step "${op.stepId}".`);
+      step.label = op.label;
+      return next;
     }
 
     case "remove-step": {
-      const removed = next.steps.find((s) => s.id === op.stepId)
-      if (!removed) throw new EditError(`Unknown step "${op.stepId}".`)
-      next.steps = next.steps.filter((s) => s.id !== op.stepId)
+      const removed = next.steps.find((s) => s.id === op.stepId);
+      if (!removed) throw new EditError(`Unknown step "${op.stepId}".`);
+      next.steps = next.steps.filter((s) => s.id !== op.stepId);
       for (const step of next.steps) {
-        if (!step.next.includes(op.stepId)) continue
+        if (!step.next.includes(op.stepId)) continue;
         const rewired = step.next.flatMap((id) =>
-          id === op.stepId ? removed.next.filter((n) => n !== step.id) : [id],
-        )
-        step.next = [...new Set(rewired)]
+          id === op.stepId ? removed.next.filter((n) => n !== step.id) : [id]
+        );
+        step.next = [...new Set(rewired)];
       }
       if (next.roots.includes(op.stepId)) {
         next.roots = [
           ...new Set(next.roots.flatMap((id) => (id === op.stepId ? removed.next : [id]))),
-        ]
+        ];
       }
-      return next
+      return next;
     }
 
     case "insert-approval-after": {
       if (next.steps.some((s) => s.id === op.step.id)) {
-        throw new EditError(`Step id "${op.step.id}" already exists.`)
+        throw new EditError(`Step id "${op.step.id}" already exists.`);
       }
-      const after = mustGetApproval(next, op.afterId)
+      const after = mustGetApproval(next, op.afterId);
       const inserted: ApprovalStep = {
         id: op.step.id,
         kind: "approval",
@@ -251,10 +253,10 @@ export function applyEditOp(policy: ApprovalPolicy, op: EditOp): ApprovalPolicy 
         mode: op.step.mode ?? "all",
         quorum: op.step.quorum,
         next: [...after.next],
-      }
-      after.next = [inserted.id]
-      next.steps.push(inserted)
-      return next
+      };
+      after.next = [inserted.id];
+      next.steps.push(inserted);
+      return next;
     }
   }
 }
@@ -263,29 +265,25 @@ export function applyEditOp(policy: ApprovalPolicy, op: EditOp): ApprovalPolicy 
  * Apply a sequence of ops and report the resulting diff. "none" and
  * "clarify" ops short-circuit into the proposal metadata instead of mutating.
  */
-export function proposeEdits(
-  policy: ApprovalPolicy,
-  ops: EditOp[],
-  reason?: string,
-): EditProposal {
-  let proposed = policy
-  let clarify: EditProposal["clarify"]
-  let declined: string | undefined
+export function proposeEdits(policy: ApprovalPolicy, ops: EditOp[], reason?: string): EditProposal {
+  let proposed = policy;
+  let clarify: EditProposal["clarify"];
+  let declined: string | undefined;
   for (const op of ops) {
     if (op.op === "clarify") {
-      clarify = { question: op.question, options: op.options }
-      continue
+      clarify = { question: op.question, options: op.options };
+      continue;
     }
     if (op.op === "none") {
-      declined = op.reason
-      continue
+      declined = op.reason;
+      continue;
     }
-    proposed = applyEditOp(proposed, op)
+    proposed = applyEditOp(proposed, op);
   }
   return {
     proposed,
     changes: diffPolicies(policy, proposed),
     reason: reason ?? declined,
     clarify,
-  }
+  };
 }

@@ -1,0 +1,6 @@
+# pnpm manages this file; prettier reformatting it just creates noise.
+pnpm-lock.yaml
+
+# Generated / vendored output.
+.next/
+public/r/

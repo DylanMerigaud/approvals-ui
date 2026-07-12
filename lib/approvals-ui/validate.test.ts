@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest"
-import { examplePolicy } from "./example-policy"
-import type { ApprovalPolicy, ApprovalStep, PolicyStep } from "./policy"
-import { isActivatable, validatePolicy } from "./validate"
+import { describe, expect, it } from "vitest";
+import { examplePolicy } from "./example-policy";
+import type { ApprovalPolicy, ApprovalStep, PolicyStep } from "./policy";
+import { isActivatable, validatePolicy } from "./validate";
 
 function policy(steps: PolicyStep[], roots: string[]): ApprovalPolicy {
-  return { name: "test", steps, roots }
+  return { name: "test", steps, roots };
 }
 
 function approvedTerminal(id = "approved"): PolicyStep {
@@ -15,10 +15,10 @@ function approvedTerminal(id = "approved"): PolicyStep {
     when: { kind: "always" },
     outcome: "approved",
     next: [],
-  }
+  };
 }
 
-type GateExtra = Partial<Pick<ApprovalStep, "label" | "when" | "approvers" | "mode" | "quorum">>
+type GateExtra = Partial<Pick<ApprovalStep, "label" | "when" | "approvers" | "mode" | "quorum">>;
 
 function gate(id: string, next: string[], extra: GateExtra = {}): PolicyStep {
   return {
@@ -30,48 +30,48 @@ function gate(id: string, next: string[], extra: GateExtra = {}): PolicyStep {
     mode: extra.mode ?? "all",
     quorum: extra.quorum,
     next,
-  }
+  };
 }
 
 function codes(p: ApprovalPolicy): string[] {
-  return validatePolicy(p).map((i) => i.code)
+  return validatePolicy(p).map((i) => i.code);
 }
 
 describe("validatePolicy", () => {
   it("flags only the unassigned director seat on the example policy", () => {
-    const issues = validatePolicy(examplePolicy)
-    expect(issues).toHaveLength(1)
+    const issues = validatePolicy(examplePolicy);
+    expect(issues).toHaveLength(1);
     expect(issues[0]).toMatchObject({
       code: "unresolved-approver",
       severity: "warning",
       stepIds: ["director-review"],
-    })
-    expect(isActivatable(issues)).toBe(true)
-  })
+    });
+    expect(isActivatable(issues)).toBe(true);
+  });
 
   it("errors on a dangling edge", () => {
-    const p = policy([gate("a", ["ghost"]), approvedTerminal()], ["a"])
-    expect(codes(p)).toContain("dangling-edge")
-    expect(isActivatable(validatePolicy(p))).toBe(false)
-  })
+    const p = policy([gate("a", ["ghost"]), approvedTerminal()], ["a"]);
+    expect(codes(p)).toContain("dangling-edge");
+    expect(isActivatable(validatePolicy(p))).toBe(false);
+  });
 
   it("errors on a cycle", () => {
-    const p = policy([gate("a", ["b"]), gate("b", ["a"]), approvedTerminal()], ["a"])
-    expect(codes(p)).toContain("cycle")
-  })
+    const p = policy([gate("a", ["b"]), gate("b", ["a"]), approvedTerminal()], ["a"]);
+    expect(codes(p)).toContain("cycle");
+  });
 
   it("errors on an unreachable step", () => {
     const p = policy(
       [gate("a", ["approved"]), gate("island", ["approved"]), approvedTerminal()],
-      ["a"],
-    )
-    expect(codes(p)).toContain("unreachable-step")
-  })
+      ["a"]
+    );
+    expect(codes(p)).toContain("unreachable-step");
+  });
 
   it("errors when there is no terminal", () => {
-    const p = policy([gate("a", [])], ["a"])
-    expect(codes(p)).toContain("no-terminal")
-  })
+    const p = policy([gate("a", [])], ["a"]);
+    expect(codes(p)).toContain("no-terminal");
+  });
 
   it("errors on an impossible quorum", () => {
     const p = policy(
@@ -86,10 +86,10 @@ describe("validatePolicy", () => {
         }),
         approvedTerminal(),
       ],
-      ["a"],
-    )
-    expect(codes(p)).toContain("quorum-invalid")
-  })
+      ["a"]
+    );
+    expect(codes(p)).toContain("quorum-invalid");
+  });
 
   it("warns when a high-value path has a single gate", () => {
     const p = policy(
@@ -99,13 +99,13 @@ describe("validatePolicy", () => {
         }),
         approvedTerminal(),
       ],
-      ["big"],
-    )
-    expect(codes(p)).toContain("single-approver-high-value")
-  })
+      ["big"]
+    );
+    expect(codes(p)).toContain("single-approver-high-value");
+  });
 
   it("warns on segregation of duties", () => {
-    const same = [{ name: "Jordan Lee", title: "Manager" }]
+    const same = [{ name: "Jordan Lee", title: "Manager" }];
     const p = policy(
       [
         gate("a", ["b"], { approvers: same, label: "First" }),
@@ -116,28 +116,28 @@ describe("validatePolicy", () => {
         }),
         approvedTerminal(),
       ],
-      ["a"],
-    )
-    expect(codes(p)).toContain("segregation-of-duties")
-  })
+      ["a"]
+    );
+    expect(codes(p)).toContain("segregation-of-duties");
+  });
 
   it("warns when a request can pass with no human approval", () => {
-    const p = policy([approvedTerminal()], ["approved"])
-    const issues = validatePolicy(p)
-    expect(issues.map((i) => i.code)).toContain("no-approval-before-terminal")
-    expect(isActivatable(issues)).toBe(true)
-  })
+    const p = policy([approvedTerminal()], ["approved"]);
+    const issues = validatePolicy(p);
+    expect(issues.map((i) => i.code)).toContain("no-approval-before-terminal");
+    expect(isActivatable(issues)).toBe(true);
+  });
 
   it("warns on duplicate gates", () => {
-    const roster = [{ name: "Ana Cruz", title: "Controller" }]
+    const roster = [{ name: "Ana Cruz", title: "Controller" }];
     const p = policy(
       [
         gate("a", ["b"], { approvers: roster, label: "Gate one" }),
         gate("b", ["approved"], { approvers: roster, label: "Gate two" }),
         approvedTerminal(),
       ],
-      ["a"],
-    )
-    expect(codes(p)).toContain("duplicate-gate")
-  })
-})
+      ["a"]
+    );
+    expect(codes(p)).toContain("duplicate-gate");
+  });
+});
