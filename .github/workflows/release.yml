@@ -1,0 +1,93 @@
+name: Release
+
+# Publish to npm when a version tag is pushed:
+#   npm version patch   # bumps package.json + creates the vX.Y.Z tag
+#   git push --follow-tags
+# Publishing uses npm Trusted Publishing (OIDC), so there is NO npm token stored
+# anywhere. npm generates a provenance attestation automatically. The trusted
+# publisher is configured once at https://www.npmjs.com/package/approvals-ui/access
+# and must name this repository and this workflow file (release.yml).
+#
+# READ THIS BEFORE PUSHING A TAG.
+# approvals-ui is distributed as a shadcn registry, not as an npm package. The
+# README says so verbatim, and the published approvals-ui@0.0.1 is a deliberate
+# name reservation: 3 files, 1561 bytes, whose own description tells installers
+# to use the registry instead. That is why package.json carries "private": true
+# and has no "files", no "main" and no "exports". The version in package.json
+# (0.1.0) is the web app's version and was never meant to match the registry.
+# So this workflow is wired and ready, but it will refuse to run until someone
+# deliberately decides approvals-ui should become a real npm package. Making
+# that call means removing "private": true, adding a library entry point and
+# a "files" list, and accepting that "npm i approvals-ui" starts shipping code
+# instead of pointing at the registry.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  # Required for OIDC trusted publishing + provenance.
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing needs npm >= 11.5.1; the runner ships older.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The tag only ships if the whole gate is green, same checks as CI.
+      - name: Format check
+        run: pnpm format:check
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Dead-code check
+        run: pnpm knip
+      - name: Test
+        run: pnpm test
+      - name: Build (registry + app)
+        run: pnpm build
+
+      # Refuse early and legibly instead of letting npm fail at the publish step
+      # with "This package has been marked as private". Delete this step in the
+      # same commit that removes "private": true from package.json.
+      - name: Verify the package is publishable
+        run: |
+          IS_PRIVATE="$(node -p "require('./package.json').private === true")"
+          if [ "$IS_PRIVATE" = "true" ]; then
+            echo "approvals-ui is marked private: it is a shadcn registry, and the"
+            echo "npm name is a reservation only. See the header of this workflow."
+            exit 1
+          fi
+
+      # Fail loudly if the tag does not match the package.json version, so a
+      # mistagged push never publishes the wrong version.
+      - name: Verify tag matches package version
+        run: |
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$PKG_VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package version $PKG_VERSION"
+            exit 1
+          fi
+
+      # No NODE_AUTH_TOKEN on purpose: its presence makes npm use the legacy token
+      # path instead of OIDC. --provenance publishes the attestation.
+      - name: Publish to npm
+        run: npm publish --provenance --access public
